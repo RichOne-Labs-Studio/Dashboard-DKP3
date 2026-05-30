@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="id">
+<head>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SN77PFDSSS"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){
+dataLayer.push(arguments);
+}
+gtag('js', new Date());
+gtag('config', 'G-SN77PFDSSS');
+</script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>
+Dashboard Interaktif Dinas Ketahanan Pangan, Pertanian dan Perikanan Kota Cirebon
+</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+</head>
+<body>
+<header><div class="header-ambient"></div><h1>Dinas Ketahanan Pangan, Pertanian dan Perikanan Kota Cirebon</h1><div class="sub">Gambaran Sektor Pangan, Pertanian dan Perikanan Tahun 2021 - 2025</div></header>
+<div class="wrap">
+  
+<div class="layer-tabs">
+<button onclick="showLayer('dashboardLayer')" class="active">📊 Data & Grafik Indikator</button>
+<button onclick="showLayer('mapLayer')">🗺 Peta Interaktif</button>
+</div>
+
+<div id="dashboardLayer" class="layer-content">
+
+<div class="panel filters">
+    <div><label>Tahun</label><select id="yearFilter"></select></div>
+    <div><label>Urusan</label><select id="urusanFilter"></select></div>
+    <div><label>Kategori</label><select id="kategoriFilter"></select></div>
+    <div><label>Cari Indikator</label><input id="searchFilter" placeholder="ketik nama indikator..." /></div>
+  </div>
+  <div class="actions"><button onclick="downloadPDF()">⬇ Download PDF</button><button class="green" onclick="window.print()">🖨 Print</button><button class="secondary" onclick="resetFilters()">↻ Reset Filter</button></div>
+
+  <div class="summary">
+    <div class="card"><b id="sumIndicators">0</b><span>Indikator tampil</span></div>
+    <div class="card"><b id="sumYears">0</b><span>Tahun data</span></div>
+    <div class="card"><b id="sumUp">0</b><span>Tren naik</span></div>
+    <div class="card"><b id="sumDown">0</b><span>Tren turun</span></div>
+  </div>
+
+  <div class="section"><div><h2>Capaian Indikator</h2><p>Menampilkan kondisi sektor pangan, pertanian, dan perikanan.</p></div><span class="badge" id="activeFilterLabel"></span></div>
+  <div class="kpis" id="kpiGrid"></div>
+  <div class="section"><div><h2>Grafik Seluruh Indikator</h2><p>Menampilkan grafik kondisi sektor pangan, pertanian, dan perikanan.</p></div></div>
+  <div class="kpis" id="indicatorCharts"></div>
+
+  <div class="section insightSection" style="margin-top:48px;display:none"><div><h2>Insight Penting, Tren, dan Hubungan Antar Data</h2><p>Insight dihitung dari perubahan 2021–2025 dan pola hubungan indikator strategis.</p></div></div>
+  <div class="grid2 insightBox">
+    <div class="card insights"><h3>Insight Penting</h3><ul id="insightList"></ul></div>
+    <div class="card insights"><h3>Hubungan Antar Data</h3><ul id="relationList"></ul></div>
+  </div>
+
+  <div class="section" style="margin-top:52px"><div><h2>Matriks Capaian Indikator</h2><p>Tabel lengkap kondisi sektor pangan, pertanian, dan perikanan.</p></div></div>
+  <div class="card panel tableWrap"><table class="matrix" id="matrixTable"></table></div>
+  <div class="footer">
+Dashboard Interaktif by <b>RichOne Labs Studio</b><br>
+<span>RICH data, simplified in ONE view</span>
+</div>
+
+</div>
+
+<div id="mapLayer" class="layer-content" style="display:none;">
+
+<div class="section">
+<div>
+<h2>Peta Interaktif Kecamatan</h2>
+<p>Klik kecamatan untuk melihat data sesuai filter peta.</p>
+</div>
+</div>
+
+<div class="panel filters">
+<div>
+<label>Tahun Peta</label>
+<select id="mapYearFilter"></select>
+</div>
+
+<div>
+<label>Kategori Peta</label>
+<select id="mapKategoriFilter"></select>
+</div>
+
+<div>
+<label>Indikator Peta</label>
+<select id="mapIndikatorFilter"></select>
+</div>
+
+<div>
+<label>Aksi</label>
+<button class="secondary" onclick="resetMapDataFilter()">↻ Reset Peta</button>
+</div>
+</div>
+
+<div class="card">
+<div id="map"></div>
+</div>
+
+<div class="footer">
+Dashboard Interaktif by <b>RichOne Labs Studio</b><br>
+<span>RICH data, simplified in ONE view</span>
+</div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="app.js"></script>
+<script src="map.js"></script>
+</body>
+</html>
