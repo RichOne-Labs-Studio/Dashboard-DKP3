@@ -1531,476 +1531,124 @@ header{
 
 
 /* =========================================================
-   FINAL UPDATE REQUEST: HEADER PROPORSIONAL + DARK MODE
-   + ICON LAYER + MOBILE NAMA LAYER SAMA
-   Letakkan paling bawah agar menimpa style lama.
+   FINAL OVERRIDE: FIX MOBILE PAPER TABS SIDE-BY-SIDE
+   Masalah sebelumnya: tab layer mobile bertumpuk vertikal.
+   Override ini memaksa tab menjadi 2 kolom sejajar seperti desktop.
    ========================================================= */
-
-:root{
-  --mider-dark:#06172f;
-  --mider-dark-2:#071b45;
-  --mider-paper:#f8fbff;
-  --desktop-header-h:126px;
-  --mobile-header-h:96px;
-}
-
-/* Background utama dark mode */
-body{
-  background:#06172f!important;
-  color:var(--text)!important;
-}
-
-/* Header utama dibuat lebih proporsional dan senada dengan background */
-.app-header,
-header{
-  height:var(--desktop-header-h)!important;
-  min-height:var(--desktop-header-h)!important;
-  padding:16px 42px 18px!important;
-  position:sticky!important;
-  top:0!important;
-  z-index:7000!important;
-  overflow:hidden!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:space-between!important;
-  gap:22px!important;
-  color:#fff!important;
-  background:
-    radial-gradient(circle at 18% 0%,rgba(25,118,255,.18),transparent 34%),
-    linear-gradient(90deg,#06172f 0%,#06172f 48%,#071b45 100%)!important;
-  box-shadow:0 12px 30px rgba(0,0,0,.22)!important;
-}
-
-/* Pola kota tetap lembut agar tidak mengganggu */
-header::before{
-  right:0!important;
-  bottom:-8px!important;
-  width:min(46vw,760px)!important;
-  height:105px!important;
-  opacity:.14!important;
-  z-index:0!important;
-}
-
-.header-ambient{
-  opacity:.45!important;
-}
-
-/* Brand kiri */
-.brand-header{
-  position:relative!important;
-  z-index:2!important;
-  display:flex!important;
-  align-items:center!important;
-  gap:18px!important;
-  max-width:min(900px,64vw)!important;
-  min-width:0!important;
-}
-
-.brand-logo{
-  width:70px!important;
-  height:70px!important;
-  min-width:70px!important;
-  object-fit:contain!important;
-  border-radius:18px!important;
-  box-shadow:0 12px 24px rgba(0,0,0,.20)!important;
-}
-
-.brand-copy{
-  min-width:0!important;
-}
-
-.brand-header h1{
-  margin:0 0 7px!important;
-  font-size:clamp(38px,3vw,52px)!important;
-  line-height:.92!important;
-  font-weight:950!important;
-  letter-spacing:-.05em!important;
-  color:#fff!important;
-  max-width:none!important;
-}
-
-.brand-header h1::before{
-  content:"Dashboard Interaktif"!important;
-  display:block!important;
-  font-size:clamp(14px,1.05vw,18px)!important;
-  font-weight:900!important;
-  line-height:1.1!important;
-  margin-bottom:6px!important;
-  color:rgba(255,255,255,.92)!important;
-  letter-spacing:-.025em!important;
-}
-
-.brand-header .sub{
-  display:block!important;
-  max-width:none!important;
-  font-size:clamp(13px,1.05vw,18px)!important;
-  line-height:1.22!important;
-  color:rgba(255,255,255,.88)!important;
-  white-space:nowrap!important;
-}
-
-/* Aksi kanan dibuat compact agar header tidak terasa terlalu lebar */
-.header-tools{
-  position:relative!important;
-  z-index:2!important;
-  display:flex!important;
-  align-items:center!important;
-  gap:10px!important;
-  padding-top:0!important;
-  flex-shrink:0!important;
-}
-
-.update-pill,
-.refresh-pill,
-.menu-pill{
-  min-height:40px!important;
-  border-radius:13px!important;
-  border:1px solid rgba(255,255,255,.12)!important;
-  background:rgba(255,255,255,.08)!important;
-  color:#fff!important;
-  box-shadow:0 8px 18px rgba(0,0,0,.14)!important;
-  backdrop-filter:blur(10px)!important;
-}
-
-.update-pill{
-  display:flex!important;
-  align-items:center!important;
-  gap:9px!important;
-  padding:8px 12px!important;
-  font-size:11px!important;
-  font-weight:650!important;
-}
-
-.update-pill b{
-  display:block!important;
-  font-size:12px!important;
-  margin-top:1px!important;
-}
-
-.pill-icon{
-  font-size:22px!important;
-}
-
-.refresh-pill{
-  padding:0 16px!important;
-  font-size:13px!important;
-  font-weight:900!important;
-  cursor:pointer!important;
-  transform:none!important;
-}
-
-.menu-pill{
-  width:44px!important;
-  height:40px!important;
-  min-height:40px!important;
-  padding:0!important;
-  font-size:22px!important;
-  font-weight:900!important;
-  cursor:pointer!important;
-  transform:none!important;
-}
-
-/* Area luar kertas */
-.wrap{
-  max-width:1920px!important;
-  margin:0 auto!important;
-  padding:0 22px 32px!important;
-  position:relative!important;
-  z-index:2!important;
-  background:#06172f!important;
-}
-
-/* Header layer sticky, solid, tidak ditembus konten */
-.layer-tabs{
-  position:sticky!important;
-  top:var(--desktop-header-h)!important;
-  z-index:6500!important;
-  display:flex!important;
-  align-items:flex-end!important;
-  gap:0!important;
-  margin:0!important;
-  padding:0 22px!important;
-  height:82px!important;
-  background:#06172f!important;
-  border-radius:0!important;
-  box-shadow:none!important;
-  backdrop-filter:none!important;
-  isolation:isolate!important;
-}
-
-/* Dasar lembar kertas tepat di belakang tab */
-.layer-tabs::before{
-  content:""!important;
-  position:absolute!important;
-  left:0!important;
-  right:0!important;
-  bottom:0!important;
-  height:38px!important;
-  background:#f8fbff!important;
-  border-radius:24px 24px 0 0!important;
-  box-shadow:0 -8px 22px rgba(0,0,0,.18)!important;
-  z-index:0!important;
-}
-
-/* Mask atas tab agar konten tidak terlihat saat scroll */
-.layer-tabs::after{
-  content:""!important;
-  position:absolute!important;
-  left:0!important;
-  right:0!important;
-  top:0!important;
-  height:44px!important;
-  background:#06172f!important;
-  z-index:-1!important;
-}
-
-.layer-tabs button{
-  position:relative!important;
-  z-index:2!important;
-  flex:1 1 0!important;
-  height:68px!important;
-  min-height:68px!important;
-  margin:0!important;
-  border-radius:28px 28px 0 0!important;
-  border:1px solid rgba(255,255,255,.35)!important;
-  border-bottom:none!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  gap:12px!important;
-  padding:0 18px!important;
-  font-size:clamp(20px,1.55vw,26px)!important;
-  line-height:1!important;
-  font-weight:950!important;
-  letter-spacing:-.025em!important;
-  box-shadow:
-    0 -5px 14px rgba(15,23,42,.18) inset,
-    0 8px 20px rgba(0,0,0,.25)!important;
-  transform:none!important;
-  transition:none!important;
-  overflow:hidden!important;
-  white-space:nowrap!important;
-}
-
-.layer-tabs button.active{
-  height:78px!important;
-  min-height:78px!important;
-  background:linear-gradient(180deg,#1d7cff,#075bd8)!important;
-  color:#fff!important;
-  z-index:3!important;
-}
-
-.layer-tabs button:not(.active){
-  background:linear-gradient(180deg,#ffffff,#edf3fb)!important;
-  color:#0b1b33!important;
-  z-index:2!important;
-}
-
-.layer-tabs button.active::after{
-  content:""!important;
-  position:absolute!important;
-  left:50%!important;
-  bottom:9px!important;
-  transform:translateX(-50%)!important;
-  width:76px!important;
-  height:5px!important;
-  border-radius:999px!important;
-  background:#7dd3fc!important;
-}
-
-.tab-icon{
-  display:inline-flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  font-size:1em!important;
-  line-height:1!important;
-}
-
-.tab-full,
-.tab-short{
-  display:inline!important;
-}
-
-/* Pada desktop, pakai nama utama */
-.tab-short{
-  display:none!important;
-}
-
-/* Lembar konten */
-.layer-content{
-  position:relative!important;
-  z-index:1!important;
-  background:linear-gradient(180deg,#f8fbff 0%,#eef5ff 100%)!important;
-  border-radius:0 0 28px 28px!important;
-  padding:22px!important;
-  box-shadow:0 18px 40px rgba(0,0,0,.28)!important;
-  overflow:hidden!important;
-}
-
-.layer-content::before{
-  content:""!important;
-  position:absolute!important;
-  left:0!important;
-  right:0!important;
-  top:0!important;
-  height:28px!important;
-  background:#f8fbff!important;
-  z-index:-1!important;
-}
-
-/* Tablet: sembunyikan tools kanan agar header tetap lega */
-@media(min-width:721px) and (max-width:1180px){
-  .header-tools{
-    display:none!important;
-  }
-
-  .brand-header{
-    max-width:100%!important;
-  }
-
-  .brand-header .sub{
-    white-space:normal!important;
-  }
-}
-
-/* Mobile */
 @media(max-width:720px){
-  :root{
-    --mobile-header-h:96px;
-  }
 
-  body{
-    background:#06172f!important;
+  :root{
+    --mobile-header-h:142px;
   }
 
   .app-header,
   header{
     height:var(--mobile-header-h)!important;
     min-height:var(--mobile-header-h)!important;
-    padding:12px 14px 14px!important;
-    align-items:center!important;
+    padding:16px 18px 22px!important;
+    position:sticky!important;
+    top:0!important;
     z-index:7000!important;
-    background:
-      radial-gradient(circle at 16% 0%,rgba(25,118,255,.16),transparent 34%),
-      linear-gradient(90deg,#06172f,#06172f)!important;
-  }
-
-  header.header-hidden{
-    transform:none!important;
-    opacity:1!important;
-  }
-
-  header::before{
-    opacity:.06!important;
-    height:70px!important;
-    width:190px!important;
-  }
-
-  .header-ambient{
-    display:none!important;
-  }
-
-  .brand-header{
-    gap:10px!important;
-    max-width:calc(100% - 50px)!important;
-  }
-
-  .brand-logo{
-    width:48px!important;
-    height:48px!important;
-    min-width:48px!important;
-    border-radius:13px!important;
-  }
-
-  .brand-header h1{
-    font-size:25px!important;
-    line-height:1!important;
-    margin:0 0 3px!important;
-  }
-
-  .brand-header h1::before{
-    font-size:10.5px!important;
-    margin-bottom:2px!important;
-  }
-
-  .brand-header .sub{
-    font-size:10.5px!important;
-    line-height:1.12!important;
-    white-space:normal!important;
-    max-width:240px!important;
-  }
-
-  .header-tools{
-    position:absolute!important;
-    right:12px!important;
-    top:50%!important;
-    transform:translateY(-50%)!important;
-    padding:0!important;
-  }
-
-  .update-pill,
-  .refresh-pill{
-    display:none!important;
-  }
-
-  .menu-pill{
-    width:40px!important;
-    height:40px!important;
-    min-height:40px!important;
-    border-radius:13px!important;
-    font-size:22px!important;
+    background:#06172f!important;
+    box-shadow:0 10px 24px rgba(0,0,0,.22)!important;
   }
 
   .wrap{
-    padding:0 10px 24px!important;
+    padding:0 14px 24px!important;
     background:#06172f!important;
   }
 
   .layer-tabs{
+    position:sticky!important;
     top:var(--mobile-header-h)!important;
-    height:62px!important;
-    padding:0 8px!important;
+    z-index:6500!important;
+
     display:flex!important;
+    flex-direction:row!important;
     grid-template-columns:none!important;
+    align-items:flex-end!important;
+    justify-content:stretch!important;
     gap:0!important;
+
+    width:100%!important;
+    height:66px!important;
+    min-height:66px!important;
+    margin:0!important;
+    padding:0 8px!important;
+
     background:#06172f!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    backdrop-filter:none!important;
+    overflow:visible!important;
+    isolation:isolate!important;
   }
 
   .layer-tabs::before{
-    height:26px!important;
+    content:""!important;
+    position:absolute!important;
+    left:8px!important;
+    right:8px!important;
+    bottom:0!important;
+    height:28px!important;
+    background:#f8fbff!important;
     border-radius:18px 18px 0 0!important;
-  }
-
-  .layer-tabs::after{
-    height:36px!important;
-    background:#06172f!important;
+    box-shadow:0 -8px 22px rgba(0,0,0,.18)!important;
+    z-index:0!important;
   }
 
   .layer-tabs button{
-    height:52px!important;
-    min-height:52px!important;
-    border-radius:18px 18px 0 0!important;
-    gap:6px!important;
-    padding:0 4px!important;
-    font-size:13.2px!important;
-    letter-spacing:-.01em!important;
+    position:relative!important;
+    z-index:2!important;
+
+    flex:1 1 50%!important;
+    width:50%!important;
+    max-width:50%!important;
+    min-width:0!important;
+
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:7px!important;
+
+    height:54px!important;
+    min-height:54px!important;
+    margin:0!important;
+    padding:0 6px!important;
+
+    border-radius:22px 22px 0 0!important;
+    border:1px solid rgba(255,255,255,.35)!important;
+    border-bottom:none!important;
+
+    font-size:15px!important;
+    line-height:1!important;
+    font-weight:900!important;
+    letter-spacing:-.02em!important;
     white-space:nowrap!important;
     overflow:hidden!important;
-    text-overflow:ellipsis!important;
+    text-overflow:clip!important;
+    transform:none!important;
   }
 
   .layer-tabs button.active{
-    height:60px!important;
-    min-height:60px!important;
+    height:64px!important;
+    min-height:64px!important;
+    background:linear-gradient(180deg,#1d7cff,#075bd8)!important;
+    color:#fff!important;
+    z-index:3!important;
+  }
+
+  .layer-tabs button:not(.active){
+    background:linear-gradient(180deg,#ffffff,#edf3fb)!important;
+    color:#0b1b33!important;
   }
 
   .layer-tabs button.active::after{
-    width:42px!important;
+    width:48px!important;
     height:4px!important;
     bottom:6px!important;
   }
 
-  /* Mobile tetap memakai nama yang sama dengan desktop */
   .tab-full{
     display:inline!important;
   }
@@ -2010,19 +1658,23 @@ header::before{
   }
 
   .tab-icon{
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
     font-size:1em!important;
+    line-height:1!important;
+    flex:0 0 auto!important;
   }
 
   .layer-content{
-    padding:14px!important;
+    position:relative!important;
+    z-index:1!important;
+    margin-top:0!important;
+    padding:18px 12px 0!important;
+    background:#f8fbff!important;
     border-radius:0 0 22px 22px!important;
+    box-shadow:0 16px 34px rgba(0,0,0,.24)!important;
+    overflow:hidden!important;
   }
 
-  .panel.filters{
-    grid-template-columns:1fr!important;
-  }
-
-  .actions{
-    margin-top:10px!important;
-  }
 }
