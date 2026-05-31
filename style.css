@@ -1375,3 +1375,157 @@ header::before{
   }
 }
 
+/* ==============================
+   FINAL FIX: PAPER TAB DARK MODE
+   ============================== */
+
+body{
+  background:#06172f!important;
+}
+
+header{
+  position:sticky!important;
+  top:0!important;
+  z-index:5000!important;
+  background:linear-gradient(90deg,#063b9d,#06172f)!important;
+}
+
+.wrap{
+  background:#06172f!important;
+  padding:0 22px 32px!important;
+}
+
+/* Area tab seperti pembatas kertas */
+.layer-tabs{
+  position:sticky!important;
+  top:92px!important;
+  z-index:4500!important;
+
+  display:flex!important;
+  align-items:flex-end!important;
+  gap:0!important;
+
+  margin:0!important;
+  padding:0 22px!important;
+
+  background:#06172f!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+
+/* Tab umum */
+.layer-tabs button{
+  position:relative!important;
+  flex:1!important;
+
+  height:68px!important;
+  min-height:68px!important;
+
+  border-radius:28px 28px 0 0!important;
+  border:1px solid rgba(255,255,255,.35)!important;
+  border-bottom:none!important;
+
+  font-size:22px!important;
+  font-weight:900!important;
+
+  box-shadow:0 -5px 14px rgba(15,23,42,.18) inset,
+             0 8px 20px rgba(0,0,0,.25)!important;
+
+  transform:none!important;
+}
+
+/* Tab aktif */
+.layer-tabs button.active{
+  height:78px!important;
+  min-height:78px!important;
+  background:linear-gradient(180deg,#1d7cff,#075bd8)!important;
+  color:#fff!important;
+  z-index:3!important;
+}
+
+/* Tab nonaktif */
+.layer-tabs button:not(.active){
+  background:linear-gradient(180deg,#ffffff,#edf3fb)!important;
+  color:#0b1b33!important;
+  z-index:2!important;
+}
+
+/* Garis kecil tab aktif */
+.layer-tabs button.active::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:9px;
+  transform:translateX(-50%);
+  width:76px;
+  height:5px;
+  border-radius:999px;
+  background:#7dd3fc;
+}
+
+/* Lembar kertas konten */
+.layer-content{
+  position:relative!important;
+  z-index:10!important;
+
+  background:linear-gradient(180deg,#f8fbff 0%,#eef5ff 100%)!important;
+
+  border-radius:0 0 28px 28px!important;
+  padding:22px!important;
+
+  box-shadow:0 18px 40px rgba(0,0,0,.28)!important;
+
+  overflow:hidden!important;
+}
+
+/* Supaya konten tidak tampak lewat belakang tab */
+.layer-content::before{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:0;
+  height:26px;
+  background:#f8fbff;
+  z-index:-1;
+}
+
+/* Mobile */
+@media(max-width:720px){
+
+  header{
+    min-height:76px!important;
+    padding:10px 14px!important;
+  }
+
+  .wrap{
+    padding:0 10px 24px!important;
+  }
+
+  .layer-tabs{
+    top:76px!important;
+    padding:0 8px!important;
+    grid-template-columns:1fr 1fr!important;
+    display:grid!important;
+    background:#06172f!important;
+  }
+
+  .layer-tabs button{
+    height:52px!important;
+    min-height:52px!important;
+    font-size:14px!important;
+    border-radius:18px 18px 0 0!important;
+    padding:0 6px!important;
+  }
+
+  .layer-tabs button.active{
+    height:60px!important;
+    min-height:60px!important;
+  }
+
+  .layer-content{
+    padding:14px!important;
+    border-radius:0 0 22px 22px!important;
+  }
+}
