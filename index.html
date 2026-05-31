@@ -20,21 +20,39 @@ Dashboard Interaktif Dinas Ketahanan Pangan, Pertanian dan Perikanan Kota Cirebo
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 </head>
 <body>
-<header>
+<header class="app-header">
   <div class="header-ambient"></div>
+
   <div class="brand-header">
-    <img src="logo.png" class="brand-logo" alt="Logo DKP3">
-    <div>
+    <img src="logo.png" class="brand-logo" alt="Logo MIDER">
+    <div class="brand-copy">
       <h1>MIDER</h1>
       <div class="sub">Monitoring Interaktif Data Pangan, Pertanian dan Perikanan</div>
     </div>
+  </div>
+
+  <div class="header-tools" aria-label="Aksi dashboard">
+    <div class="update-pill">
+      <span class="pill-icon">◷</span>
+      <span>Update terakhir:<b id="lastUpdateText">31 Mei 2026, 13.45 WIB</b></span>
+    </div>
+    <button type="button" class="refresh-pill" onclick="location.reload()">↻ Refresh Data</button>
+    <button type="button" class="menu-pill" aria-label="Menu">☰</button>
   </div>
 </header>
 <div class="wrap">
   
 <div class="layer-tabs">
-<button onclick="showLayer('dashboardLayer')" class="active">📊 Mider Data</button>
-<button onclick="showLayer('mapLayer')">🗺 Mider Peta</button>
+<button onclick="showLayer('dashboardLayer')" class="active">
+  <span class="tab-icon">▥</span>
+  <span class="tab-full">MIDER DATA</span>
+  <span class="tab-short">KPI</span>
+</button>
+<button onclick="showLayer('mapLayer')">
+  <span class="tab-icon">⌖</span>
+  <span class="tab-full">MIDER PETA</span>
+  <span class="tab-short">PETA</span>
+</button>
 </div>
 
 <div id="dashboardLayer" class="layer-content">
