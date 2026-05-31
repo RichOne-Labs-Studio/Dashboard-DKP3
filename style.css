@@ -1678,3 +1678,531 @@ header{
   }
 
 }
+
+
+/* =========================================================
+   FINAL OVERRIDE 2026-06-01
+   Header compact + tab layer FIXED seperti lembar kertas.
+   Tujuan:
+   1) Header tidak terlalu tinggi di desktop/mobile.
+   2) Header utama menyatu dengan background dark mode.
+   3) Tab layer tidak ikut bergerak saat scroll.
+   4) Konten tidak terlihat menembus di belakang tab.
+   5) Mobile tab tetap 2 kolom, kecil, dan nama sama seperti desktop.
+   ========================================================= */
+
+:root{
+  --mider-bg:#06172f;
+  --mider-bg-2:#071b45;
+  --mider-paper:#f8fbff;
+
+  --fixed-header-desktop:112px;
+  --fixed-tabs-desktop:66px;
+
+  --fixed-header-mobile:74px;
+  --fixed-tabs-mobile:52px;
+}
+
+/* Dark mode background utama */
+html,
+body{
+  background:#06172f!important;
+  min-height:100%!important;
+}
+
+/* Supaya konten mulai di bawah header + tab yang fixed */
+body{
+  padding-top:calc(var(--fixed-header-desktop) + var(--fixed-tabs-desktop))!important;
+}
+
+/* HEADER UTAMA - COMPACT & FIXED */
+.app-header,
+header{
+  position:fixed!important;
+  top:0!important;
+  left:0!important;
+  right:0!important;
+
+  height:var(--fixed-header-desktop)!important;
+  min-height:var(--fixed-header-desktop)!important;
+  max-height:var(--fixed-header-desktop)!important;
+
+  padding:16px 34px 12px!important;
+  z-index:9000!important;
+
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:18px!important;
+
+  background:
+    linear-gradient(90deg,#06172f 0%,#071b45 45%,#06172f 100%)!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.28)!important;
+  overflow:hidden!important;
+}
+
+/* Dekorasi kota tetap halus, tidak dominan */
+header::before{
+  height:96px!important;
+  width:min(46vw,720px)!important;
+  right:0!important;
+  bottom:0!important;
+  opacity:.14!important;
+}
+
+.header-ambient{
+  opacity:.30!important;
+}
+
+/* Branding header */
+.brand-header{
+  display:flex!important;
+  align-items:center!important;
+  gap:18px!important;
+  max-width:calc(100% - 430px)!important;
+  min-width:0!important;
+}
+
+.brand-logo{
+  width:70px!important;
+  height:70px!important;
+  min-width:70px!important;
+  border-radius:18px!important;
+  object-fit:contain!important;
+  box-shadow:0 10px 22px rgba(0,0,0,.22)!important;
+}
+
+.brand-copy{
+  min-width:0!important;
+}
+
+.brand-header h1{
+  margin:0 0 5px!important;
+  font-size:40px!important;
+  line-height:.95!important;
+  font-weight:950!important;
+  letter-spacing:-.045em!important;
+  color:#fff!important;
+  max-width:none!important;
+}
+
+.brand-header h1::before{
+  content:"Dashboard Interaktif"!important;
+  display:block!important;
+  font-size:15px!important;
+  line-height:1.05!important;
+  margin-bottom:4px!important;
+  font-weight:900!important;
+  letter-spacing:-.02em!important;
+  color:rgba(255,255,255,.92)!important;
+}
+
+.brand-header .sub{
+  display:block!important;
+  max-width:none!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  font-size:15px!important;
+  line-height:1.2!important;
+  color:rgba(255,255,255,.88)!important;
+}
+
+/* Tombol kanan header dibuat lebih ringkas */
+.header-tools{
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  padding-top:0!important;
+  position:relative!important;
+  z-index:2!important;
+}
+
+.update-pill{
+  min-height:42px!important;
+  padding:8px 12px!important;
+  border-radius:13px!important;
+  font-size:12px!important;
+  background:rgba(255,255,255,.09)!important;
+}
+
+.update-pill b{
+  font-size:12px!important;
+}
+
+.pill-icon{
+  font-size:21px!important;
+}
+
+.refresh-pill{
+  height:42px!important;
+  min-height:42px!important;
+  padding:0 16px!important;
+  border-radius:13px!important;
+  font-size:13px!important;
+  background:rgba(255,255,255,.09)!important;
+}
+
+.menu-pill{
+  width:44px!important;
+  height:42px!important;
+  min-height:42px!important;
+  border-radius:13px!important;
+  font-size:22px!important;
+  background:rgba(255,255,255,.09)!important;
+}
+
+/* WRAP tidak memberi ruang ekstra selain padding horizontal */
+.wrap{
+  background:#06172f!important;
+  max-width:1920px!important;
+  margin:0 auto!important;
+  padding:0 22px 30px!important;
+  position:relative!important;
+  z-index:1!important;
+}
+
+/* TAB LAYER - FIXED, tidak ikut bergerak saat scroll */
+.layer-tabs{
+  position:fixed!important;
+  top:var(--fixed-header-desktop)!important;
+  left:22px!important;
+  right:22px!important;
+
+  height:var(--fixed-tabs-desktop)!important;
+  min-height:var(--fixed-tabs-desktop)!important;
+
+  z-index:8500!important;
+
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:flex-end!important;
+  gap:0!important;
+
+  margin:0!important;
+  padding:0 10px!important;
+
+  background:#06172f!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  overflow:visible!important;
+  isolation:isolate!important;
+}
+
+/* Lembar kertas solid di bawah tab supaya data tidak tembus */
+.layer-tabs::before{
+  content:""!important;
+  position:absolute!important;
+  left:10px!important;
+  right:10px!important;
+  bottom:0!important;
+  height:26px!important;
+
+  background:#f8fbff!important;
+  border-radius:20px 20px 0 0!important;
+  box-shadow:0 -8px 20px rgba(0,0,0,.22)!important;
+  z-index:0!important;
+}
+
+/* Style tab */
+.layer-tabs button{
+  position:relative!important;
+  z-index:2!important;
+
+  flex:1 1 50%!important;
+  width:50%!important;
+  max-width:50%!important;
+  min-width:0!important;
+
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:10px!important;
+
+  height:54px!important;
+  min-height:54px!important;
+  margin:0!important;
+  padding:0 14px!important;
+
+  border-radius:24px 24px 0 0!important;
+  border:1px solid rgba(255,255,255,.38)!important;
+  border-bottom:none!important;
+
+  font-size:20px!important;
+  line-height:1!important;
+  font-weight:950!important;
+  letter-spacing:-.02em!important;
+
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+
+  transform:none!important;
+  transition:none!important;
+  box-shadow:0 -5px 14px rgba(15,23,42,.16) inset,
+             0 8px 18px rgba(0,0,0,.22)!important;
+}
+
+.layer-tabs button.active{
+  height:62px!important;
+  min-height:62px!important;
+  background:linear-gradient(180deg,#1d7cff,#075bd8)!important;
+  color:#fff!important;
+  z-index:3!important;
+}
+
+.layer-tabs button:not(.active){
+  background:linear-gradient(180deg,#ffffff,#edf3fb)!important;
+  color:#0b1b33!important;
+}
+
+.layer-tabs button.active::after{
+  content:""!important;
+  position:absolute!important;
+  left:50%!important;
+  bottom:6px!important;
+  transform:translateX(-50%)!important;
+  width:64px!important;
+  height:4px!important;
+  border-radius:999px!important;
+  background:#7dd3fc!important;
+  box-shadow:0 0 10px rgba(125,211,252,.45)!important;
+}
+
+.tab-icon{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 auto!important;
+  font-size:1em!important;
+  line-height:1!important;
+}
+
+.tab-full,
+.tab-short{
+  display:inline!important;
+}
+
+/* Konten lembar kertas */
+.layer-content{
+  position:relative!important;
+  z-index:1!important;
+
+  margin-top:0!important;
+  padding:20px 20px 0!important;
+
+  background:#f8fbff!important;
+  border-radius:0 0 24px 24px!important;
+  box-shadow:0 18px 38px rgba(0,0,0,.25)!important;
+
+  overflow:hidden!important;
+}
+
+/* Semua isi konten berada di bawah tab fixed */
+.layer-content > *{
+  position:relative!important;
+  z-index:1!important;
+}
+
+/* Peta tetap di bawah tab/header */
+.leaflet-container,
+#map,
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom{
+  z-index:1!important;
+}
+
+/* MOBILE COMPACT */
+@media(max-width:720px){
+
+  :root{
+    --fixed-header-mobile:74px;
+    --fixed-tabs-mobile:50px;
+  }
+
+  body{
+    padding-top:calc(var(--fixed-header-mobile) + var(--fixed-tabs-mobile))!important;
+    background:#06172f!important;
+  }
+
+  .app-header,
+  header{
+    height:var(--fixed-header-mobile)!important;
+    min-height:var(--fixed-header-mobile)!important;
+    max-height:var(--fixed-header-mobile)!important;
+
+    padding:8px 12px!important;
+    z-index:9000!important;
+
+    align-items:center!important;
+    background:#06172f!important;
+    box-shadow:0 6px 18px rgba(0,0,0,.26)!important;
+  }
+
+  header.header-hidden{
+    transform:none!important;
+    opacity:1!important;
+  }
+
+  header::before{
+    width:150px!important;
+    height:62px!important;
+    opacity:.08!important;
+    animation:none!important;
+  }
+
+  .header-ambient{
+    display:none!important;
+  }
+
+  .brand-header{
+    gap:9px!important;
+    max-width:calc(100% - 48px)!important;
+  }
+
+  .brand-logo{
+    width:44px!important;
+    height:44px!important;
+    min-width:44px!important;
+    border-radius:12px!important;
+  }
+
+  .brand-header h1{
+    font-size:24px!important;
+    line-height:.95!important;
+    margin:0 0 2px!important;
+  }
+
+  .brand-header h1::before{
+    font-size:10px!important;
+    line-height:1!important;
+    margin-bottom:2px!important;
+  }
+
+  .brand-header .sub{
+    font-size:9.8px!important;
+    line-height:1.05!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    max-width:235px!important;
+  }
+
+  .header-tools{
+    position:absolute!important;
+    right:10px!important;
+    top:15px!important;
+    padding:0!important;
+    gap:0!important;
+  }
+
+  .update-pill,
+  .refresh-pill{
+    display:none!important;
+  }
+
+  .menu-pill{
+    width:40px!important;
+    height:40px!important;
+    min-height:40px!important;
+    border-radius:12px!important;
+    font-size:21px!important;
+  }
+
+  .wrap{
+    padding:0 10px 24px!important;
+    background:#06172f!important;
+  }
+
+  .layer-tabs{
+    position:fixed!important;
+    top:var(--fixed-header-mobile)!important;
+    left:10px!important;
+    right:10px!important;
+
+    height:var(--fixed-tabs-mobile)!important;
+    min-height:var(--fixed-tabs-mobile)!important;
+
+    z-index:8500!important;
+
+    display:flex!important;
+    flex-direction:row!important;
+    grid-template-columns:none!important;
+    align-items:flex-end!important;
+    gap:0!important;
+
+    padding:0 6px!important;
+    margin:0!important;
+
+    background:#06172f!important;
+    border-radius:0!important;
+    overflow:visible!important;
+  }
+
+  .layer-tabs::before{
+    left:6px!important;
+    right:6px!important;
+    bottom:0!important;
+    height:20px!important;
+    border-radius:16px 16px 0 0!important;
+    background:#f8fbff!important;
+  }
+
+  .layer-tabs button{
+    flex:1 1 50%!important;
+    width:50%!important;
+    max-width:50%!important;
+    min-width:0!important;
+
+    height:42px!important;
+    min-height:42px!important;
+
+    border-radius:17px 17px 0 0!important;
+    padding:0 4px!important;
+    gap:5px!important;
+
+    font-size:12.5px!important;
+    line-height:1!important;
+    font-weight:900!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:clip!important;
+  }
+
+  .layer-tabs button.active{
+    height:48px!important;
+    min-height:48px!important;
+  }
+
+  .layer-tabs button.active::after{
+    width:38px!important;
+    height:3px!important;
+    bottom:5px!important;
+  }
+
+  .tab-full,
+  .tab-short{
+    display:inline!important;
+  }
+
+  .tab-icon{
+    font-size:1em!important;
+  }
+
+  .layer-content{
+    padding:14px 10px 0!important;
+    border-radius:0 0 20px 20px!important;
+    box-shadow:0 12px 28px rgba(0,0,0,.22)!important;
+  }
+
+  .panel.filters{
+    grid-template-columns:1fr!important;
+  }
+
+  .actions{
+    gap:8px!important;
+  }
+}
+
