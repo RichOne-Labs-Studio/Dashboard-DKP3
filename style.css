@@ -170,6 +170,7 @@ header::after,
   display:flex;
   align-items:center;
   gap:16px;
+  width:100%;
 }
 
 .hamburger{
@@ -803,6 +804,14 @@ button.green{
 }
 
 @media(max-width:768px){
+ 
+.theme-toggle{
+  width:40px!important;
+  height:40px!important;
+  min-width:40px;
+  font-size:18px!important;
+} 
+ 
   .sidebar{
     transform:translateX(-280px);
   }
@@ -1100,10 +1109,16 @@ body{
 
 .theme-toggle{
   margin-left:auto;
-  width:44px;
-  height:44px;
+  width:44px!important;
+  height:44px!important;
+  min-width:44px;
+  padding:0!important;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   border-radius:12px;
-  font-size:20px;
+  font-size:20px!important;
+  line-height:1;
   background:#1e293b;
   color:#fff;
   box-shadow:none;
