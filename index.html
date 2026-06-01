@@ -14,19 +14,44 @@ gtag('config', 'G-SN77PFDSSS');
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>
-Dashboard Interaktif Dinas Ketahanan Pangan, Pertanian dan Perikanan Kota Cirebon
+Dashboard Interaktif Kota Cirebon
 </title>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 </head>
 <body>
-<header><div class="header-ambient"></div><h1>Dinas Ketahanan Pangan, Pertanian dan Perikanan Kota Cirebon</h1><div class="sub">Gambaran Sektor Pangan, Pertanian dan Perikanan Tahun 2021 - 2025</div></header>
-<div class="wrap">
-  
-<div class="layer-tabs">
-<button onclick="showLayer('dashboardLayer')" class="active">📊 Data & Grafik Indikator</button>
-<button onclick="showLayer('mapLayer')">🗺 Peta Interaktif</button>
-</div>
+<div class="app-layout">
+
+<aside id="sidebar" class="sidebar">
+  <div class="brand">
+    <div class="brand-logo">M</div>
+    <div>
+      <h2>MIDER</h2>
+      <span>Monitoring Interaktif Data dan Evaluasi Pangan, Pertanian dan Perikanan</span>
+    </div>
+  </div>
+
+  <button class="sidebar-menu active" onclick="showLayer('dashboardLayer')">📊 Dashboard</button>
+  <button class="sidebar-menu" onclick="showLayer('mapLayer')">🗺 Peta Interaktif</button>
+
+  <div class="sidebar-title">Kategori</div>
+  <div id="sidebarKategori"></div>
+
+  <div class="sidebar-title">Indikator</div>
+  <div id="sidebarIndikator"></div>
+</aside>
+
+<div id="mobileOverlay" class="mobile-overlay"></div>
+
+<main id="mainContent" class="main-content">
+
+<header class="topbar">
+  <button id="toggleSidebar" class="hamburger">☰</button>
+  <div>
+    <h1>MIDER</h1>
+    <p>Monitoring Interaktif Data dan Evaluasi Pangan, Pertanian dan Perikanan</p>
+  </div>
+</header>
 
 <div id="dashboardLayer" class="layer-content">
 
@@ -59,8 +84,8 @@ Dashboard Interaktif Dinas Ketahanan Pangan, Pertanian dan Perikanan Kota Cirebo
   <div class="section" style="margin-top:52px"><div><h2>Matriks Capaian Indikator</h2><p>Tabel lengkap kondisi sektor pangan, pertanian, dan perikanan.</p></div></div>
   <div class="card panel tableWrap"><table class="matrix" id="matrixTable"></table></div>
   <div class="footer">
-Dashboard Interaktif by <b>RichOne Labs Studio</b><br>
-<span>RICH data, simplified in ONE view</span>
+Dashboard Interaktif by <b>MIDER</b><br>
+<span>Memantau Data, Mengawal Pembangunan</span>
 </div>
 
 </div>
@@ -101,8 +126,8 @@ Dashboard Interaktif by <b>RichOne Labs Studio</b><br>
 </div>
 
 <div class="footer">
-Dashboard Interaktif by <b>RichOne Labs Studio</b><br>
-<span>RICH data, simplified in ONE view</span>
+Dashboard Interaktif by <b>MIDER</b><br>
+<span>Memantau Data, Mengawal Pembangunan</span>
 </div>
 </div>
 
@@ -113,3 +138,6 @@ Dashboard Interaktif by <b>RichOne Labs Studio</b><br>
 <script src="map.js"></script>
 </body>
 </html>
+
+</main>
+</div>

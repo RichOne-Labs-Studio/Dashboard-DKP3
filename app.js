@@ -259,6 +259,7 @@ throw new Error('Data KPI kosong atau header spreadsheet tidak sesuai.');
 }
 
 populateFilters();
+populateSidebarMenu();
 render();
 
 }
@@ -492,4 +493,73 @@ selectedKecamatan = null;
 
 render();
 
+}
+document.addEventListener('DOMContentLoaded', function(){
+  const toggle = document.getElementById('toggleSidebar');
+  const sidebar = document.getElementById('sidebar');
+  const mainContent = document.getElementById('mainContent');
+  const overlay = document.getElementById('mobileOverlay');
+
+  function refreshMapSize(){
+    setTimeout(function(){
+      if(window.map){
+        window.map.invalidateSize();
+      }
+    }, 350);
+  }
+
+  if(toggle){
+    toggle.addEventListener('click', function(){
+      if(window.innerWidth <= 768){
+        sidebar.classList.toggle('mobile-open');
+        overlay.classList.toggle('active');
+      }else{
+        sidebar.classList.toggle('collapsed');
+        mainContent.classList.toggle('fullscreen');
+      }
+
+      refreshMapSize();
+    });
+  }
+
+  if(overlay){
+    overlay.addEventListener('click', function(){
+      sidebar.classList.remove('mobile-open');
+      overlay.classList.remove('active');
+      refreshMapSize();
+    });
+  }
+});
+function populateSidebarMenu(){
+  const kategoriBox = document.getElementById('sidebarKategori');
+  const indikatorBox = document.getElementById('sidebarIndikator');
+
+  if(!kategoriBox || !indikatorBox || !DATA.length) return;
+
+  kategoriBox.innerHTML = [...new Set(DATA.map(d => d.kategori).filter(Boolean))]
+    .sort()
+    .map(k => `<button onclick="pilihKategoriSidebar('${k.replace(/'/g, "\\'")}')">${k}</button>`)
+    .join('');
+
+  indikatorBox.innerHTML = [...new Set(DATA.map(d => d.indikator).filter(Boolean))]
+    .sort()
+    .slice(0, 40)
+    .map(i => `<button onclick="pilihIndikatorSidebar('${i.replace(/'/g, "\\'")}')">${i}</button>`)
+    .join('');
+}
+
+function pilihKategoriSidebar(kategori){
+  const filter = document.getElementById('kategoriFilter');
+  if(filter){
+    filter.value = kategori;
+    render();
+  }
+}
+
+function pilihIndikatorSidebar(indikator){
+  const search = document.getElementById('searchFilter');
+  if(search){
+    search.value = indikator;
+    render();
+  }
 }
