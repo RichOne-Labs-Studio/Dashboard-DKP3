@@ -34,11 +34,16 @@ Dashboard Interaktif Kota Cirebon
   <button class="sidebar-menu active" onclick="showLayer('dashboardLayer')">📊 Dashboard</button>
   <button class="sidebar-menu" onclick="showLayer('mapLayer')">🗺 Peta Interaktif</button>
 
-  <div class="sidebar-title">Kategori</div>
-  <div id="sidebarKategori"></div>
+<div class="sidebar-title map-sidebar-filter">Tahun Peta</div>
+<div id="sidebarMapTahun" class="map-sidebar-filter"></div>
+  <div class="sidebar-title">Urusan</div>
+<div id="sidebarUrusan"></div>
 
-  <div class="sidebar-title">Indikator</div>
-  <div id="sidebarIndikator"></div>
+<div class="sidebar-title">Kategori</div>
+<div id="sidebarKategori"></div>
+
+<div class="sidebar-title">Indikator</div>
+<div id="sidebarIndikator"></div>
 </aside>
 
 <div id="mobileOverlay" class="mobile-overlay"></div>
@@ -63,11 +68,12 @@ Dashboard Interaktif Kota Cirebon
 <div id="dashboardLayer" class="layer-content">
 
 <div class="panel filters">
-    <div><label>Tahun</label><select id="yearFilter"></select></div>
-    <div><label>Urusan</label><select id="urusanFilter"></select></div>
-    <div><label>Kategori</label><select id="kategoriFilter"></select></div>
-    <div><label>Cari Indikator</label><input id="searchFilter" placeholder="ketik nama indikator..." /></div>
-  </div>
+  <div><label>Tahun</label><select id="yearFilter"></select></div>
+  <div class="hide-main-filter"><label>Urusan</label><select id="urusanFilter"></select></div>
+  <div class="hide-main-filter"><label>Kategori</label><select id="kategoriFilter"></select></div>
+  <div><label>Cari Indikator</label><input id="searchFilter" placeholder="ketik nama indikator..." /></div>
+</div>
+
   <div class="actions"><button onclick="downloadPDF()">⬇ Download PDF</button><button class="green" onclick="window.print()">🖨 Print</button><button class="secondary" onclick="resetFilters()">↻ Reset Filter</button></div>
 
   <div class="summary">
@@ -106,7 +112,7 @@ Dashboard Interaktif by <b>MIDER</b><br>
 </div>
 </div>
 
-<div class="panel filters">
+<div class="panel filters hide-main-filter">
 <div>
 <label>Tahun Peta</label>
 <select id="mapYearFilter"></select>
