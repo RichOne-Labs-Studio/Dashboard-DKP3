@@ -1019,3 +1019,15 @@ button.green{
   transform:none;
   box-shadow:none;
 }
+
+/* NONAKTIFKAN PULL TO REFRESH MOBILE */
+
+html,
+body{
+  overscroll-behavior-y: contain;
+}
+
+/* smooth mobile scroll */
+body{
+  -webkit-overflow-scrolling: touch;
+}

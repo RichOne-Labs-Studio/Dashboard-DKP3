@@ -687,3 +687,81 @@ function pilihTahunPetaSidebar(tahun){
 
   showLayer('mapLayer');
 }
+/* DISABLE MOBILE PULL TO REFRESH */
+
+(function(){
+
+  let touchStartY = 0;
+
+  document.addEventListener('touchstart', function(e){
+
+    touchStartY = e.touches[0].clientY;
+
+  }, { passive:true });
+
+  document.addEventListener('touchmove', function(e){
+
+    const touchY = e.touches[0].clientY;
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+    /* jika di paling atas dan swipe ke bawah */
+    if(scrollTop <= 0 && touchY > touchStartY){
+
+      e.preventDefault();
+
+    }
+
+  }, { passive:false });
+
+})();
+
+/* AUTO REFRESH DASHBOARD */
+
+let autoRefreshTimer = null;
+
+function startAutoRefresh(){
+
+  /* 5 menit */
+  const interval = 300000;
+
+  autoRefreshTimer = setInterval(async ()=>{
+
+    try{
+
+      const status = document.getElementById('autoRefreshStatus');
+
+      if(status){
+        status.innerHTML = '⟳ Sinkronisasi data...';
+      }
+
+      await loadDashboardData();
+
+      if(status){
+
+        const now = new Date();
+
+        status.innerHTML =
+          '✓ Update ' +
+          now.toLocaleTimeString('id-ID',{
+            hour:'2-digit',
+            minute:'2-digit'
+          });
+      }
+
+    }catch(error){
+
+      console.error('Auto refresh gagal:', error);
+
+      const status = document.getElementById('autoRefreshStatus');
+
+      if(status){
+        status.innerHTML = '⚠ Gagal sinkronisasi';
+      }
+
+    }
+
+  }, interval);
+}
+
+/* jalankan auto refresh */
+startAutoRefresh();
