@@ -44,9 +44,13 @@ let MAP_DATA = [];
 let mainChart, barChart; let miniCharts=[];
 let years = [];
 let selectedKecamatan = null;
-let activeSidebarUrusan = 'all';
-let activeSidebarKategori = 'all';
-let activeSidebarIndikator = 'all';
+let activeDashboardUrusan = 'all';
+let activeDashboardKategori = 'all';
+let activeDashboardIndikator = 'all';
+
+let activeMapKategori = 'all';
+let activeMapIndikator = 'all';
+
 const fmt=(v)=> v==null?'N/A':Number(v).toLocaleString('id-ID',{maximumFractionDigits:2});
 const pct=(a,b)=> (a==null||b==null||b===0)?null:((a-b)/Math.abs(b)*100);
 function populateFilters(){
@@ -191,7 +195,20 @@ function renderTable(rows){
   }).join('')+'</tbody>';
 }
 function render(){ const rows=filteredBase(); const inds=groupIndicators(rows); const selectedYear=yearFilter.value; const trends=inds.map(ind=>{const latest=latestForIndicator(rows,ind); const yoyYear=selectedYear==='all'?latest?.tahun:selectedYear; return trendOf(DATA,ind,yoyYear);}); sumIndicators.textContent=inds.length; sumYears.textContent=[...new Set(rows.map(d=>d.tahun))].length; sumUp.textContent=trends.filter(t=>t.change>0).length; sumDown.textContent=trends.filter(t=>t.change<0).length; activeFilterLabel.textContent=`${yearFilter.value==='all'?'Semua Tahun':yearFilter.value} • ${urusanFilter.value==='all'?'Semua Urusan':urusanFilter.value} • ${kategoriFilter.value==='all'?'Semua Kategori':kategoriFilter.value}`; renderKPIs(rows); renderCharts(rows); renderInsights(rows); renderTable(rows);}
-function resetFilters(){yearFilter.value='all';urusanFilter.value='all';updateKategori();kategoriFilter.value='all';searchFilter.value='';render();}
+function resetFilters(){
+  yearFilter.value = 'all';
+  urusanFilter.value = 'all';
+  updateKategori();
+  kategoriFilter.value = 'all';
+  searchFilter.value = '';
+
+  activeDashboardUrusan = 'all';
+  activeDashboardKategori = 'all';
+  activeDashboardIndikator = 'all';
+
+  populateSidebarMenu('dashboard');
+  render();
+}
 function downloadPDF(){window.print();}
 const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbx1r0FE6IGDVPMHuwxFIq0G1-gM14zHfCwuICQEZ9j_10J53LByuHwPOF9Dhw4bdAW2/exec';
 
@@ -268,7 +285,8 @@ if(!window.dashboardInitialized){
   window.dashboardInitialized = true;
 }
 
-populateSidebarMenu('dashboard');
+const activeLayer = document.getElementById('mapLayer')?.style.display === 'block' ? 'map' : 'dashboard';
+populateSidebarMenu(activeLayer);
 
 render();
 }
@@ -552,6 +570,7 @@ function populateSidebarMenu(mode = 'dashboard'){
 
   const rows = mode === 'map' ? (window.MAP_DATA || MAP_DATA || []) : DATA;
 
+  /* Tampilkan Tahun Peta hanya di layer Peta */
   if(mapTahunBox){
     mapTahunBox.style.display = mode === 'map' ? 'block' : 'none';
 
@@ -559,6 +578,13 @@ function populateSidebarMenu(mode = 'dashboard'){
       mapTahunBox.previousElementSibling.style.display = mode === 'map' ? 'block' : 'none';
     }
   }
+
+  /* Layer Peta tidak memakai Urusan */
+  const urusanTitle = urusanBox.previousElementSibling;
+  if(urusanTitle){
+    urusanTitle.style.display = mode === 'map' ? 'none' : 'block';
+  }
+  urusanBox.style.display = mode === 'map' ? 'none' : 'block';
 
   if(!rows.length){
     urusanBox.innerHTML = '<small>Data belum tersedia</small>';
@@ -569,13 +595,25 @@ function populateSidebarMenu(mode = 'dashboard'){
 
   let filteredRows = [...rows];
 
-  if(activeSidebarUrusan !== 'all'){
-    filteredRows = filteredRows.filter(d => d.urusan === activeSidebarUrusan);
+  if(mode === 'dashboard'){
+    if(activeDashboardUrusan !== 'all'){
+      filteredRows = filteredRows.filter(d => d.urusan === activeDashboardUrusan);
+    }
+
+    if(activeDashboardKategori !== 'all'){
+      filteredRows = filteredRows.filter(d => d.kategori === activeDashboardKategori);
+    }
   }
 
-  if(activeSidebarKategori !== 'all'){
-    filteredRows = filteredRows.filter(d => d.kategori === activeSidebarKategori);
+  if(mode === 'map'){
+    if(activeMapKategori !== 'all'){
+      filteredRows = filteredRows.filter(d => d.kategori === activeMapKategori);
+    }
   }
+
+  const activeUrusan = activeDashboardUrusan;
+  const activeKategori = mode === 'map' ? activeMapKategori : activeDashboardKategori;
+  const activeIndikator = mode === 'map' ? activeMapIndikator : activeDashboardIndikator;
 
   if(mode === 'map' && mapTahunBox){
     mapTahunBox.innerHTML = [...new Set(rows.map(d => d.tahun).filter(Boolean))]
@@ -584,20 +622,24 @@ function populateSidebarMenu(mode = 'dashboard'){
       .join('');
   }
 
-  urusanBox.innerHTML = [...new Set(rows.map(d => d.urusan).filter(Boolean))]
-    .sort()
-    .map(u => `
-      <button class="${activeSidebarUrusan === u ? 'active-filter' : ''}"
-        onclick="pilihUrusanSidebar('${u.replace(/'/g,"\\'")}', '${mode}')">
-        ${u}
-      </button>
-    `)
-    .join('');
+  if(mode === 'dashboard'){
+    urusanBox.innerHTML = [...new Set(rows.map(d => d.urusan).filter(Boolean))]
+      .sort()
+      .map(u => `
+        <button class="${activeUrusan === u ? 'active-filter' : ''}"
+          onclick="pilihUrusanSidebar('${u.replace(/'/g,"\\'")}', '${mode}')">
+          ${u}
+        </button>
+      `)
+      .join('');
+  }else{
+    urusanBox.innerHTML = '';
+  }
 
   kategoriBox.innerHTML = [...new Set(filteredRows.map(d => d.kategori).filter(Boolean))]
     .sort()
     .map(k => `
-      <button class="${activeSidebarKategori === k ? 'active-filter' : ''}"
+      <button class="${activeKategori === k ? 'active-filter' : ''}"
         onclick="pilihKategoriSidebar('${k.replace(/'/g,"\\'")}', '${mode}')">
         ${k}
       </button>
@@ -608,7 +650,7 @@ function populateSidebarMenu(mode = 'dashboard'){
     .sort()
     .slice(0,40)
     .map(i => `
-      <button class="${activeSidebarIndikator === i ? 'active-filter' : ''}"
+      <button class="${activeIndikator === i ? 'active-filter' : ''}"
         onclick="pilihIndikatorSidebar('${i.replace(/'/g,"\\'")}', '${mode}')">
         ${i}
       </button>
@@ -617,23 +659,26 @@ function populateSidebarMenu(mode = 'dashboard'){
 }
 
 function pilihUrusanSidebar(urusan, mode = 'dashboard'){
-  
-activeSidebarUrusan = urusan;
-activeSidebarKategori = 'all';
-activeSidebarIndikator = 'all';
 
-populateSidebarMenu(mode);
-
-if(mode === 'map'){
+  /* Layer Peta tidak memakai filter Urusan */
+  if(mode === 'map'){
     showLayer('mapLayer');
     return;
   }
+
+  activeDashboardUrusan = urusan;
+  activeDashboardKategori = 'all';
+  activeDashboardIndikator = 'all';
+
+  populateSidebarMenu('dashboard');
 
   const filter = document.getElementById('urusanFilter');
 
   if(filter){
     filter.value = urusan;
     updateKategori();
+    kategoriFilter.value = 'all';
+    searchFilter.value = '';
     render();
   }
 
@@ -642,12 +687,11 @@ if(mode === 'map'){
 
 function pilihKategoriSidebar(kategori, mode = 'dashboard'){
 
-activeSidebarKategori = kategori;
-activeSidebarIndikator = 'all';
+  if(mode === 'map'){
+    activeMapKategori = kategori;
+    activeMapIndikator = 'all';
+    populateSidebarMenu('map');
 
-populateSidebarMenu(mode);  
-
-if(mode === 'map'){
     const filter = document.getElementById('mapKategoriFilter');
 
     if(filter){
@@ -657,9 +701,14 @@ if(mode === 'map'){
         updateMapIndikatorFilter();
       }
 
-if(typeof renderMapData === 'function'){
-  renderMapData();
-}
+      const indikatorFilter = document.getElementById('mapIndikatorFilter');
+      if(indikatorFilter){
+        indikatorFilter.value = 'all';
+      }
+
+      if(typeof renderMapData === 'function'){
+        renderMapData();
+      }
 
       if(typeof refreshMapPopup === 'function'){
         refreshMapPopup();
@@ -670,10 +719,15 @@ if(typeof renderMapData === 'function'){
     return;
   }
 
+  activeDashboardKategori = kategori;
+  activeDashboardIndikator = 'all';
+  populateSidebarMenu('dashboard');
+
   const filter = document.getElementById('kategoriFilter');
 
   if(filter){
     filter.value = kategori;
+    searchFilter.value = '';
     render();
   }
 
@@ -682,19 +736,18 @@ if(typeof renderMapData === 'function'){
 
 function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
 
-activeSidebarIndikator = indikator;
-
-populateSidebarMenu(mode);
-
   if(mode === 'map'){
+    activeMapIndikator = indikator;
+    populateSidebarMenu('map');
+
     const filter = document.getElementById('mapIndikatorFilter');
 
     if(filter){
       filter.value = indikator;
 
-    if(typeof renderMapData === 'function'){
-  renderMapData();
-}
+      if(typeof renderMapData === 'function'){
+        renderMapData();
+      }
 
       if(typeof refreshMapPopup === 'function'){
         refreshMapPopup();
@@ -704,6 +757,9 @@ populateSidebarMenu(mode);
     showLayer('mapLayer');
     return;
   }
+
+  activeDashboardIndikator = indikator;
+  populateSidebarMenu('dashboard');
 
   const search = document.getElementById('searchFilter');
 

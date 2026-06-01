@@ -146,6 +146,13 @@ function resetMapDataFilter(){
 
   if(i) i.value = 'all';
 
+  activeMapKategori = 'all';
+  activeMapIndikator = 'all';
+
+  if(typeof populateSidebarMenu === 'function'){
+    populateSidebarMenu('map');
+  }
+
   refreshMapPopup();
 }
 
