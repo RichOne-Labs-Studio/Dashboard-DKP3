@@ -452,32 +452,32 @@ setTimeout(applySmartKpiIcons, 1000);
   window.addEventListener('scroll', handleHeaderAutoHide, {passive:true});
   window.addEventListener('resize', handleHeaderAutoHide);
 })();
+
 function showLayer(layerId){
 
-document.getElementById('dashboardLayer').style.display = 'none';
-document.getElementById('mapLayer').style.display = 'none';
+  document.getElementById('dashboardLayer').style.display = 'none';
+  document.getElementById('mapLayer').style.display = 'none';
+  document.getElementById(layerId).style.display = 'block';
 
-document.getElementById(layerId).style.display = 'block';
+  document.querySelectorAll('.sidebar-menu').forEach(btn=>{
+    btn.classList.remove('active');
+  });
 
-document.querySelectorAll('.layer-tabs button').forEach(btn=>{
-btn.classList.remove('active');
-});
+  if(layerId === 'dashboardLayer'){
+    document.querySelector('.sidebar-menu:nth-of-type(1)').classList.add('active');
+  }
 
-if(layerId === 'dashboardLayer'){
-document.querySelector('.layer-tabs button:nth-child(1)').classList.add('active');
+  if(layerId === 'mapLayer'){
+    document.querySelector('.sidebar-menu:nth-of-type(2)').classList.add('active');
+
+    setTimeout(function(){
+      if(window.map){
+        window.map.invalidateSize();
+      }
+    },300);
+  }
 }
 
-if(layerId === 'mapLayer'){
-document.querySelector('.layer-tabs button:nth-child(2)').classList.add('active');
-
-setTimeout(function(){
-if(window.map){
-window.map.invalidateSize();
-}
-},300);
-}
-
-}
 function setKecamatanFilter(kecamatan){
 
 selectedKecamatan = kecamatan;

@@ -23,13 +23,13 @@ Dashboard Interaktif Kota Cirebon
 <div class="app-layout">
 
 <aside id="sidebar" class="sidebar">
-  <div class="brand">
-    <div class="brand-logo">M</div>
-    <div>
-      <h2>MIDER</h2>
-      <span>Monitoring Interaktif Data dan Evaluasi Pangan, Pertanian dan Perikanan</span>
-    </div>
+  
+<div class="brand">
+  <div>
+    <h2>MIDER</h2>
+    <span>Monitoring Interaktif Data dan Evaluasi</span>
   </div>
+</div>
 
   <button class="sidebar-menu active" onclick="showLayer('dashboardLayer')">📊 Dashboard</button>
   <button class="sidebar-menu" onclick="showLayer('mapLayer')">🗺 Peta Interaktif</button>
@@ -46,11 +46,18 @@ Dashboard Interaktif Kota Cirebon
 <main id="mainContent" class="main-content">
 
 <header class="topbar">
-  <button id="toggleSidebar" class="hamburger">☰</button>
-  <div>
-    <h1>MIDER</h1>
-    <p>Monitoring Interaktif Data dan Evaluasi Pangan, Pertanian dan Perikanan</p>
+
+  <div class="topbar-left">
+    <button id="toggleSidebar" class="hamburger">☰</button>
+
+    <img src="logo.png" alt="Logo MIDER" class="header-logo">
+
+    <div class="header-title">
+      <h1>MIDER</h1>
+      <p>Monitoring Interaktif Data dan Evaluasi Pangan, Pertanian dan Perikanan</p>
+    </div>
   </div>
+
 </header>
 
 <div id="dashboardLayer" class="layer-content">
@@ -131,6 +138,8 @@ Dashboard Interaktif by <b>MIDER</b><br>
 </div>
 </div>
 
+</main>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -139,5 +148,4 @@ Dashboard Interaktif by <b>MIDER</b><br>
 </body>
 </html>
 
-</main>
-</div>
+
