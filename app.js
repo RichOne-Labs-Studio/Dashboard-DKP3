@@ -44,6 +44,9 @@ let MAP_DATA = [];
 let mainChart, barChart; let miniCharts=[];
 let years = [];
 let selectedKecamatan = null;
+let activeSidebarUrusan = 'all';
+let activeSidebarKategori = 'all';
+let activeSidebarIndikator = 'all';
 const fmt=(v)=> v==null?'N/A':Number(v).toLocaleString('id-ID',{maximumFractionDigits:2});
 const pct=(a,b)=> (a==null||b==null||b===0)?null:((a-b)/Math.abs(b)*100);
 function populateFilters(){
@@ -258,10 +261,16 @@ if(!DATA.length){
 throw new Error('Data KPI kosong atau header spreadsheet tidak sesuai.');
 }
 
-populateFilters();
-populateSidebarMenu('dashboard');
-render();
+if(!window.dashboardInitialized){
 
+  populateFilters();
+
+  window.dashboardInitialized = true;
+}
+
+populateSidebarMenu('dashboard');
+
+render();
 }
 
 async function loadDashboardDataFromFetch(){
@@ -544,12 +553,12 @@ function populateSidebarMenu(mode = 'dashboard'){
   const rows = mode === 'map' ? (window.MAP_DATA || MAP_DATA || []) : DATA;
 
   if(mapTahunBox){
-
     mapTahunBox.style.display = mode === 'map' ? 'block' : 'none';
 
-    mapTahunBox.previousElementSibling.style.display =
-      mode === 'map' ? 'block' : 'none';
-}
+    if(mapTahunBox.previousElementSibling){
+      mapTahunBox.previousElementSibling.style.display = mode === 'map' ? 'block' : 'none';
+    }
+  }
 
   if(!rows.length){
     urusanBox.innerHTML = '<small>Data belum tersedia</small>';
@@ -558,38 +567,64 @@ function populateSidebarMenu(mode = 'dashboard'){
     return;
   }
 
-if(mode === 'map' && mapTahunBox){
+  let filteredRows = [...rows];
 
-  mapTahunBox.innerHTML =
-    [...new Set(rows.map(d => d.tahun).filter(Boolean))]
-    .sort((a,b)=>a-b)
-    .map(t => `
-      <button onclick="pilihTahunPetaSidebar('${t}')">
-        ${t}
+  if(activeSidebarUrusan !== 'all'){
+    filteredRows = filteredRows.filter(d => d.urusan === activeSidebarUrusan);
+  }
+
+  if(activeSidebarKategori !== 'all'){
+    filteredRows = filteredRows.filter(d => d.kategori === activeSidebarKategori);
+  }
+
+  if(mode === 'map' && mapTahunBox){
+    mapTahunBox.innerHTML = [...new Set(rows.map(d => d.tahun).filter(Boolean))]
+      .sort((a,b)=>a-b)
+      .map(t => `<button onclick="pilihTahunPetaSidebar('${t}')">${t}</button>`)
+      .join('');
+  }
+
+  urusanBox.innerHTML = [...new Set(rows.map(d => d.urusan).filter(Boolean))]
+    .sort()
+    .map(u => `
+      <button class="${activeSidebarUrusan === u ? 'active-filter' : ''}"
+        onclick="pilihUrusanSidebar('${u.replace(/'/g,"\\'")}', '${mode}')">
+        ${u}
+      </button>
+    `)
+    .join('');
+
+  kategoriBox.innerHTML = [...new Set(filteredRows.map(d => d.kategori).filter(Boolean))]
+    .sort()
+    .map(k => `
+      <button class="${activeSidebarKategori === k ? 'active-filter' : ''}"
+        onclick="pilihKategoriSidebar('${k.replace(/'/g,"\\'")}', '${mode}')">
+        ${k}
+      </button>
+    `)
+    .join('');
+
+  indikatorBox.innerHTML = [...new Set(filteredRows.map(d => d.indikator).filter(Boolean))]
+    .sort()
+    .slice(0,40)
+    .map(i => `
+      <button class="${activeSidebarIndikator === i ? 'active-filter' : ''}"
+        onclick="pilihIndikatorSidebar('${i.replace(/'/g,"\\'")}', '${mode}')">
+        ${i}
       </button>
     `)
     .join('');
 }
 
-  urusanBox.innerHTML = [...new Set(rows.map(d => d.urusan).filter(Boolean))]
-    .sort()
-    .map(u => `<button onclick="pilihUrusanSidebar('${u.replace(/'/g, "\\'")}', '${mode}')">${u}</button>`)
-    .join('');
-
-  kategoriBox.innerHTML = [...new Set(rows.map(d => d.kategori).filter(Boolean))]
-    .sort()
-    .map(k => `<button onclick="pilihKategoriSidebar('${k.replace(/'/g, "\\'")}', '${mode}')">${k}</button>`)
-    .join('');
-
-  indikatorBox.innerHTML = [...new Set(rows.map(d => d.indikator).filter(Boolean))]
-    .sort()
-    .slice(0, 40)
-    .map(i => `<button onclick="pilihIndikatorSidebar('${i.replace(/'/g, "\\'")}', '${mode}')">${i}</button>`)
-    .join('');
-}
-
 function pilihUrusanSidebar(urusan, mode = 'dashboard'){
-  if(mode === 'map'){
+  
+activeSidebarUrusan = urusan;
+activeSidebarKategori = 'all';
+activeSidebarIndikator = 'all';
+
+populateSidebarMenu(mode);
+
+if(mode === 'map'){
     showLayer('mapLayer');
     return;
   }
@@ -606,7 +641,13 @@ function pilihUrusanSidebar(urusan, mode = 'dashboard'){
 }
 
 function pilihKategoriSidebar(kategori, mode = 'dashboard'){
-  if(mode === 'map'){
+
+activeSidebarKategori = kategori;
+activeSidebarIndikator = 'all';
+
+populateSidebarMenu(mode);  
+
+if(mode === 'map'){
     const filter = document.getElementById('mapKategoriFilter');
 
     if(filter){
@@ -640,6 +681,10 @@ if(typeof renderMapData === 'function'){
 }
 
 function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
+
+activeSidebarIndikator = indikator;
+
+populateSidebarMenu(mode);
 
   if(mode === 'map'){
     const filter = document.getElementById('mapIndikatorFilter');
@@ -715,53 +760,47 @@ function pilihTahunPetaSidebar(tahun){
 
 })();
 
-/* AUTO REFRESH DASHBOARD */
+/* AUTO REFRESH DASHBOARD TANPA RESET TAMPILAN */
 
-let autoRefreshTimer = null;
+setInterval(async function(){
 
-function startAutoRefresh(){
+  console.log('Auto refresh dashboard...');
 
-  /* 5 menit */
-  const interval = 300000;
+  try{
+    await loadDashboardData();
+  }catch(error){
+    console.error('Auto refresh gagal:', error);
+  }
 
-  autoRefreshTimer = setInterval(async ()=>{
+}, 300000);
 
-    try{
+/* THEME TOGGLE LIGHT / DARK */
 
-      const status = document.getElementById('autoRefreshStatus');
+(function(){
 
-      if(status){
-        status.innerHTML = '⟳ Sinkronisasi data...';
-      }
+  const btn = document.getElementById('themeToggle');
 
-      await loadDashboardData();
+  if(!btn) return;
 
-      if(status){
+  const savedTheme = localStorage.getItem('miderTheme') || 'dark';
 
-        const now = new Date();
+  if(savedTheme === 'light'){
+    document.body.classList.add('light-mode');
+    btn.textContent = '☀️';
+  }else{
+    btn.textContent = '🌙';
+  }
 
-        status.innerHTML =
-          '✓ Update ' +
-          now.toLocaleTimeString('id-ID',{
-            hour:'2-digit',
-            minute:'2-digit'
-          });
-      }
+  btn.addEventListener('click', function(){
 
-    }catch(error){
+    document.body.classList.toggle('light-mode');
 
-      console.error('Auto refresh gagal:', error);
+    const isLight = document.body.classList.contains('light-mode');
 
-      const status = document.getElementById('autoRefreshStatus');
+    btn.textContent = isLight ? '☀️' : '🌙';
 
-      if(status){
-        status.innerHTML = '⚠ Gagal sinkronisasi';
-      }
+    localStorage.setItem('miderTheme', isLight ? 'light' : 'dark');
 
-    }
+  });
 
-  }, interval);
-}
-
-/* jalankan auto refresh */
-startAutoRefresh();
+})();

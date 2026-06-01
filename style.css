@@ -1031,3 +1031,124 @@ body{
 body{
   -webkit-overflow-scrolling: touch;
 }
+
+.active-filter{
+  background:#2563eb!important;
+  color:#ffffff!important;
+  border-left:4px solid #60a5fa!important;
+  box-shadow:0 0 0 1px rgba(96,165,250,.25);
+}
+
+/* ===== PREMIUM MODERN SCROLLBAR ===== */
+
+/* Chrome, Edge, Opera */
+::-webkit-scrollbar{
+  width:6px;
+  height:6px;
+}
+
+::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+::-webkit-scrollbar-thumb{
+  background:linear-gradient(
+    180deg,
+    rgba(59,130,246,.55),
+    rgba(14,165,233,.35)
+  );
+
+  border-radius:999px;
+
+  border:1px solid rgba(255,255,255,.06);
+
+  box-shadow:
+    0 0 8px rgba(59,130,246,.18),
+    inset 0 0 4px rgba(255,255,255,.08);
+
+  backdrop-filter:blur(6px);
+
+  transition:
+    background .25s ease,
+    box-shadow .25s ease,
+    transform .2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover{
+
+  background:linear-gradient(
+    180deg,
+    rgba(96,165,250,.85),
+    rgba(14,165,233,.65)
+  );
+
+  box-shadow:
+    0 0 12px rgba(59,130,246,.35),
+    inset 0 0 6px rgba(255,255,255,.15);
+
+}
+
+::-webkit-scrollbar-corner{
+  background:transparent;
+}
+
+/* Firefox */
+*{
+  scrollbar-width:thin;
+  scrollbar-color:rgba(96,165,250,.45) transparent;
+}
+
+.theme-toggle{
+  margin-left:auto;
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  font-size:20px;
+  background:#1e293b;
+  color:#fff;
+  box-shadow:none;
+}
+
+/* LIGHT MODE */
+body.light-mode{
+  --bg:#f4f7fb;
+  --surface:#ffffff;
+  --panel:#ffffff;
+  --panel2:#f1f5f9;
+  --text:#0f172a;
+  --muted:#64748b;
+  --line:#cbd5e1;
+}
+
+body.light-mode .sidebar,
+body.light-mode header,
+body.light-mode .topbar{
+  background:#ffffff!important;
+  color:#0f172a!important;
+}
+
+body.light-mode .card,
+body.light-mode .panel,
+body.light-mode .section,
+body.light-mode .kpis{
+  background:#ffffff!important;
+  color:#0f172a!important;
+}
+
+body.light-mode input,
+body.light-mode select{
+  background:#f8fafc;
+  color:#0f172a;
+}
+
+body.light-mode .sidebar-menu,
+body.light-mode #sidebarUrusan button,
+body.light-mode #sidebarKategori button,
+body.light-mode #sidebarIndikator button{
+  color:#334155;
+}
+
+body.light-mode .theme-toggle{
+  background:#e2e8f0;
+  color:#0f172a;
+}

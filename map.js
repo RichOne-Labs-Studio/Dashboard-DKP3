@@ -170,13 +170,12 @@ function getKecamatanSummary(kecamatan){
   }
 
   return rows.map(d => `
-    <br><small>
-    <b>${d.indikator || '-'}</b><br>
-    Kategori: ${d.kategori || '-'}<br>
-    Nilai: <b>${d.nilai ?? '-'}</b> ${d.satuan || ''}<br>
-    Tahun: ${d.tahun || '-'}
-    </small>
-  `).join('<hr>');
+  <br><small>
+    Indikator: <b>${d.indikator || '-'}</b><br>
+    Nilai: <b>${d.nilai ?? '-'}</b><br>
+    Satuan: ${d.satuan || '-'}
+  </small>
+`).join('<hr>');
 }
 
 // Refresh popup jika filter peta berubah
@@ -230,11 +229,9 @@ fetch('cirebon_kecamatan.geojson')
         const kecamatan = getKecamatanName(feature);
 
         layer.bindPopup(`
-          <b>${kecamatan}</b>
-          ${getKecamatanSummary(kecamatan)}
-          <br><br>
-          <small>Data berdasarkan filter peta.</small>
-        `);
+  	<b>${kecamatan}</b>
+  	${getKecamatanSummary(kecamatan)}
+	`);
 
         layer.on('mouseover', function(){
           if(selectedMapLayer !== layer){
