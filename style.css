@@ -1167,3 +1167,245 @@ body.light-mode .theme-toggle{
   background:#e2e8f0;
   color:#0f172a;
 }
+
+/* TOOLBAR RESET PETA DI HALAMAN UTAMA PETA */
+.map-toolbar{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  margin:0 0 12px;
+}
+
+.btn-reset-map{
+  min-width:120px;
+  height:42px;
+  padding:0 16px!important;
+  border-radius:12px;
+  background:linear-gradient(135deg,#2563eb,#1d4ed8);
+  color:#ffffff;
+  font-size:13px;
+  font-weight:850;
+  box-shadow:0 8px 18px rgba(37,99,235,.24);
+}
+
+.btn-reset-map:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 24px rgba(37,99,235,.30);
+}
+
+@media(max-width:768px){
+  .map-toolbar{
+    justify-content:stretch;
+  }
+
+  .btn-reset-map{
+    width:100%;
+  }
+}
+
+body.light-mode .btn-reset-map{
+  background:linear-gradient(135deg,#2563eb,#1d4ed8);
+  color:#ffffff;
+}
+
+/* =====================================================
+   PREMIUM LEGEND & LIGHT THEME READABILITY FIX
+   ===================================================== */
+
+/* Legend / keterangan grafik lebih terang dan premium di dark mode */
+body:not(.light-mode) #indicatorCharts .meta,
+body:not(.light-mode) .smallChart .meta,
+body:not(.light-mode) .kpi .meta{
+  color:#dbeafe!important;
+  opacity:.96;
+  font-weight:650;
+  letter-spacing:.015em;
+}
+
+body:not(.light-mode) #indicatorCharts .kpi .meta{
+  display:block;
+  width:max-content;
+  max-width:100%;
+  margin:12px auto 0;
+  padding:6px 12px;
+  border-radius:999px;
+  background:rgba(96,165,250,.10);
+  border:1px solid rgba(147,197,253,.18);
+  box-shadow:0 4px 12px rgba(15,23,42,.18);
+}
+
+/* Teks utama di light mode agar tidak tetap putih */
+body.light-mode{
+  --bg:#f4f7fb;
+  --surface:#ffffff;
+  --panel:#ffffff;
+  --panel2:#f1f5f9;
+  --text:#0f172a;
+  --muted:#475569;
+  --line:#cbd5e1;
+}
+
+body.light-mode,
+body.light-mode .app-layout,
+body.light-mode .main-content{
+  background:#f4f7fb!important;
+  color:#0f172a!important;
+}
+
+body.light-mode .sidebar,
+body.light-mode header,
+body.light-mode .topbar{
+  background:#ffffff!important;
+  color:#0f172a!important;
+  border-color:#e2e8f0!important;
+  box-shadow:0 4px 18px rgba(15,23,42,.08)!important;
+}
+
+body.light-mode .header-title h1,
+body.light-mode .brand h2,
+body.light-mode .section h2,
+body.light-mode .kpi h3,
+body.light-mode label{
+  color:#0f172a!important;
+}
+
+body.light-mode .header-title p,
+body.light-mode .brand span,
+body.light-mode .section p,
+body.light-mode .summary span,
+body.light-mode .footer,
+body.light-mode .footer span{
+  color:#475569!important;
+}
+
+body.light-mode .card,
+body.light-mode .panel,
+body.light-mode .section,
+body.light-mode .kpis{
+  background:#ffffff!important;
+  color:#0f172a!important;
+  border-color:#e2e8f0!important;
+  box-shadow:0 8px 22px rgba(15,23,42,.08)!important;
+}
+
+body.light-mode .kpi{
+  background:linear-gradient(180deg,#ffffff,#f8fafc)!important;
+  border-color:#e2e8f0!important;
+  color:#0f172a!important;
+}
+
+body.light-mode #indicatorCharts .kpi .meta,
+body.light-mode .smallChart .meta,
+body.light-mode .kpi .meta{
+  color:#334155!important;
+  opacity:1;
+  font-weight:650;
+  letter-spacing:.015em;
+}
+
+body.light-mode #indicatorCharts .kpi .meta{
+  display:block;
+  width:max-content;
+  max-width:100%;
+  margin:12px auto 0;
+  padding:6px 12px;
+  border-radius:999px;
+  background:#eff6ff;
+  border:1px solid #bfdbfe;
+  box-shadow:0 4px 12px rgba(37,99,235,.08);
+}
+
+body.light-mode .hamburger,
+body.light-mode button.secondary{
+  background:#f1f5f9!important;
+  color:#0f172a!important;
+  border:1px solid #cbd5e1!important;
+}
+
+body.light-mode input,
+body.light-mode select{
+  background:#ffffff!important;
+  color:#0f172a!important;
+  border-color:#cbd5e1!important;
+}
+
+body.light-mode input::placeholder{
+  color:#64748b!important;
+}
+
+body.light-mode .sidebar-title{
+  color:#64748b!important;
+}
+
+body.light-mode .sidebar-menu,
+body.light-mode #sidebarUrusan button,
+body.light-mode #sidebarKategori button,
+body.light-mode #sidebarIndikator button,
+body.light-mode #sidebarMapTahun button{
+  color:#334155!important;
+}
+
+body.light-mode .sidebar-menu:hover,
+body.light-mode #sidebarUrusan button:hover,
+body.light-mode #sidebarKategori button:hover,
+body.light-mode #sidebarIndikator button:hover,
+body.light-mode #sidebarMapTahun button:hover{
+  background:#f1f5f9!important;
+  color:#0f172a!important;
+}
+
+body.light-mode .active-filter,
+body.light-mode .sidebar-menu.active{
+  color:#ffffff!important;
+}
+
+body.light-mode .badge{
+  background:#eff6ff!important;
+  color:#1d4ed8!important;
+  border-color:#bfdbfe!important;
+}
+
+body.light-mode .actions{
+  background:#ffffff!important;
+  border-color:#e2e8f0!important;
+  box-shadow:0 8px 22px rgba(15,23,42,.08)!important;
+}
+
+body.light-mode .matrix th{
+  background:#e2e8f0!important;
+  color:#0f172a!important;
+  border-color:#cbd5e1!important;
+}
+
+body.light-mode .matrix td{
+  background:#ffffff!important;
+  color:#0f172a!important;
+  border-color:#e2e8f0!important;
+}
+
+body.light-mode .matrix tr:nth-child(even) td{
+  background:#f8fafc!important;
+}
+
+body.light-mode .matrix tr:hover td{
+  background:#eaf2ff!important;
+}
+
+body.light-mode .tableWrap{
+  background:#ffffff!important;
+  border-color:#e2e8f0!important;
+}
+
+body.light-mode .tableWrap::after{
+  background:#f8fafc!important;
+  color:#2563eb!important;
+  border-top:1px solid #e2e8f0!important;
+}
+
+/* Popup peta saat light mode */
+body.light-mode .leaflet-popup-content-wrapper,
+body.light-mode .leaflet-popup-tip{
+  background:#ffffff!important;
+  color:#0f172a!important;
+}
+
