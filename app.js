@@ -564,27 +564,19 @@ function populateSidebarMenu(mode = 'dashboard'){
   const urusanBox = document.getElementById('sidebarUrusan');
   const kategoriBox = document.getElementById('sidebarKategori');
   const indikatorBox = document.getElementById('sidebarIndikator');
-  const mapTahunBox = document.getElementById('sidebarMapTahun');
-
+  
   if(!urusanBox || !kategoriBox || !indikatorBox) return;
 
   const rows = mode === 'map' ? (window.MAP_DATA || MAP_DATA || []) : DATA;
 
   /* Tampilkan Tahun Peta hanya di layer Peta */
-  if(mapTahunBox){
-    mapTahunBox.style.display = mode === 'map' ? 'block' : 'none';
-
-    if(mapTahunBox.previousElementSibling){
-      mapTahunBox.previousElementSibling.style.display = mode === 'map' ? 'block' : 'none';
-    }
-  }
-
-  /* Layer Peta tidak memakai Urusan */
   const urusanTitle = urusanBox.previousElementSibling;
-  if(urusanTitle){
-    urusanTitle.style.display = mode === 'map' ? 'none' : 'block';
-  }
-  urusanBox.style.display = mode === 'map' ? 'none' : 'block';
+
+if(urusanTitle){
+  urusanTitle.style.display = mode === 'map' ? 'none' : 'block';
+}
+
+urusanBox.style.display = mode === 'map' ? 'none' : 'block';
 
   if(!rows.length){
     urusanBox.innerHTML = '<small>Data belum tersedia</small>';
@@ -614,13 +606,6 @@ function populateSidebarMenu(mode = 'dashboard'){
   const activeUrusan = activeDashboardUrusan;
   const activeKategori = mode === 'map' ? activeMapKategori : activeDashboardKategori;
   const activeIndikator = mode === 'map' ? activeMapIndikator : activeDashboardIndikator;
-
-  if(mode === 'map' && mapTahunBox){
-    mapTahunBox.innerHTML = [...new Set(rows.map(d => d.tahun).filter(Boolean))]
-      .sort((a,b)=>a-b)
-      .map(t => `<button onclick="pilihTahunPetaSidebar('${t}')">${t}</button>`)
-      .join('');
-  }
 
   if(mode === 'dashboard'){
     urusanBox.innerHTML = [...new Set(rows.map(d => d.urusan).filter(Boolean))]
@@ -690,29 +675,27 @@ function pilihKategoriSidebar(kategori, mode = 'dashboard'){
   if(mode === 'map'){
     activeMapKategori = kategori;
     activeMapIndikator = 'all';
+
     populateSidebarMenu('map');
 
     const filter = document.getElementById('mapKategoriFilter');
 
     if(filter){
       filter.value = kategori;
+    }
 
-      if(typeof updateMapIndikatorFilter === 'function'){
-        updateMapIndikatorFilter();
-      }
+    if(typeof updateMapIndikatorFilter === 'function'){
+      updateMapIndikatorFilter();
+    }
 
-      const indikatorFilter = document.getElementById('mapIndikatorFilter');
-      if(indikatorFilter){
-        indikatorFilter.value = 'all';
-      }
+    const indikatorFilter = document.getElementById('mapIndikatorFilter');
 
-      if(typeof renderMapData === 'function'){
-        renderMapData();
-      }
+    if(indikatorFilter){
+      indikatorFilter.value = 'all';
+    }
 
-      if(typeof refreshMapPopup === 'function'){
-        refreshMapPopup();
-      }
+    if(typeof refreshMapPopup === 'function'){
+      refreshMapPopup();
     }
 
     showLayer('mapLayer');
@@ -721,6 +704,7 @@ function pilihKategoriSidebar(kategori, mode = 'dashboard'){
 
   activeDashboardKategori = kategori;
   activeDashboardIndikator = 'all';
+
   populateSidebarMenu('dashboard');
 
   const filter = document.getElementById('kategoriFilter');
@@ -738,20 +722,17 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
 
   if(mode === 'map'){
     activeMapIndikator = indikator;
+
     populateSidebarMenu('map');
 
     const filter = document.getElementById('mapIndikatorFilter');
 
     if(filter){
       filter.value = indikator;
+    }
 
-      if(typeof renderMapData === 'function'){
-        renderMapData();
-      }
-
-      if(typeof refreshMapPopup === 'function'){
-        refreshMapPopup();
-      }
+    if(typeof refreshMapPopup === 'function'){
+      refreshMapPopup();
     }
 
     showLayer('mapLayer');
@@ -759,6 +740,7 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
   }
 
   activeDashboardIndikator = indikator;
+
   populateSidebarMenu('dashboard');
 
   const search = document.getElementById('searchFilter');
@@ -771,23 +753,6 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
   showLayer('dashboardLayer');
 }
 
-function pilihTahunPetaSidebar(tahun){
-  const filter = document.getElementById('mapYearFilter');
-
-  if(filter){
-    filter.value = tahun;
-
-    if(typeof renderMapData === 'function'){
-      renderMapData();
-    }
-
-    if(typeof refreshMapPopup === 'function'){
-      refreshMapPopup();
-    }
-  }
-
-  showLayer('mapLayer');
-}
 /* DISABLE MOBILE PULL TO REFRESH */
 
 (function(){
