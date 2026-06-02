@@ -1498,3 +1498,41 @@ body.light-mode .kpi h3{
 body.light-mode canvas{
   filter:none!important;
 }
+
+.map-top-filter{
+  display:flex;
+  align-items:center;
+  gap:14px;
+
+  margin-top:18px;
+}
+
+.map-year-box{
+  min-width:220px;
+}
+
+.map-year-box label{
+  display:block;
+  margin-bottom:8px;
+
+  font-size:13px;
+  font-weight:700;
+
+  color:var(--muted);
+}
+
+.map-year-box select{
+  width:100%;
+}
+
+@media(max-width:768px){
+
+  .map-top-filter{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .map-year-box{
+    width:100%;
+  }
+}
