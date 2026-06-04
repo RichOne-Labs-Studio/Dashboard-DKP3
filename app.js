@@ -86,13 +86,59 @@ const fmt=(v)=> v==null?'N/A':Number(v).toLocaleString('id-ID',{maximumFractionD
 const pct=(a,b)=> (a==null||b==null||b===0)?null:((a-b)/Math.abs(b)*100);
 function populateFilters(){
  const y=document.getElementById('yearFilter'), u=document.getElementById('urusanFilter'), k=document.getElementById('kategoriFilter');
- y.innerHTML='<option value="all">Semua Tahun</option>'+years.map(x=>`<option>${x}</option>`).join('');
- u.innerHTML='<option value="all">Semua Urusan</option>'+[...new Set(DATA.map(d=>d.urusan))].sort().map(x=>`<option>${x}</option>`).join('');
+ if(!y || !u || !k) return;
+
+ const currentYear = y.value || 'all';
+ const currentUrusan = u.value || 'all';
+ const currentKategori = k.value || 'all';
+
+ y.innerHTML='<option value="all">Semua Tahun</option>'+years.map(x=>`<option value="${x}">${x}</option>`).join('');
+ u.innerHTML='<option value="all">Semua Urusan</option>'+[...new Set(DATA.map(d=>d.urusan).filter(Boolean))].sort().map(x=>`<option value="${x}">${x}</option>`).join('');
+
+ if([...y.options].some(opt => opt.value === currentYear)) y.value = currentYear;
+ if([...u.options].some(opt => opt.value === currentUrusan)) u.value = currentUrusan;
+
  updateKategori();
- ['yearFilter','urusanFilter','kategoriFilter','searchFilter'].forEach(id=>document.getElementById(id).addEventListener(id==='urusanFilter'?'change':'input',()=>{ if(id==='urusanFilter') updateKategori(); render();}));
- document.getElementById('yearFilter').addEventListener('change',render); document.getElementById('kategoriFilter').addEventListener('change',render);
+
+ if([...k.options].some(opt => opt.value === currentKategori)) k.value = currentKategori;
+
+ [
+   {id:'yearFilter', event:'change'},
+   {id:'urusanFilter', event:'change'},
+   {id:'kategoriFilter', event:'change'},
+   {id:'searchFilter', event:'input'}
+ ].forEach(cfg=>{
+   const el=document.getElementById(cfg.id);
+   if(!el || el.dataset.miderBound === '1') return;
+
+   el.addEventListener(cfg.event, ()=>{
+     if(cfg.id === 'urusanFilter'){
+       updateKategori();
+     }
+     render();
+   });
+
+   el.dataset.miderBound = '1';
+ });
 }
-function updateKategori(){ const u=document.getElementById('urusanFilter').value; let rows=DATA.filter(d=>u==='all'||d.urusan===u); let cats=[...new Set(rows.map(d=>d.kategori))].sort(); document.getElementById('kategoriFilter').innerHTML='<option value="all">Semua Kategori</option>'+cats.map(x=>`<option>${x}</option>`).join('');}
+function updateKategori(){
+ const uEl=document.getElementById('urusanFilter');
+ const kEl=document.getElementById('kategoriFilter');
+ if(!uEl || !kEl) return;
+
+ const u=uEl.value;
+ let rows=DATA.filter(d=>u==='all'||d.urusan===u);
+ let cats=[...new Set(rows.map(d=>d.kategori).filter(Boolean))].sort();
+
+ const currentKategori = kEl.value || 'all';
+ kEl.innerHTML='<option value="all">Semua Kategori</option>'+cats.map(x=>`<option value="${x}">${x}</option>`).join('');
+
+ if([...kEl.options].some(opt => opt.value === currentKategori)){
+   kEl.value = currentKategori;
+ }else{
+   kEl.value = 'all';
+ }
+}
 function filteredBase(){
 const y=document.getElementById('yearFilter')?.value || 'all';
 const u=document.getElementById('urusanFilter')?.value || 'all';
@@ -107,7 +153,17 @@ return DATA.filter(d=>
 (!selectedKecamatan || String(d.kecamatan||'').toLowerCase()===String(selectedKecamatan).toLowerCase())
 );
 }
-function latestForIndicator(rows, ind){ const yr=yearFilter.value; let r=rows.filter(d=>d.indikator===ind.indikator && d.urusan===ind.urusan && d.kategori===ind.kategori && d.kode===ind.kode && d.nilai!=null); if(yr!=='all') r=r.filter(d=>d.tahun==yr); r.sort((a,b)=>b.tahun-a.tahun); return r[0];}
+function getSelectedDashboardYear(){
+  return document.getElementById('yearFilter')?.value || 'all';
+}
+
+function latestForIndicator(rows, ind){
+  const yr = getSelectedDashboardYear();
+  let r=rows.filter(d=>d.indikator===ind.indikator && d.urusan===ind.urusan && d.kategori===ind.kategori && d.kode===ind.kode && d.nilai!=null);
+  if(yr!=='all') r=r.filter(d=>String(d.tahun)===String(yr));
+  r.sort((a,b)=>Number(b.tahun)-Number(a.tahun));
+  return r[0];
+}
 function groupIndicators(rows){ const map=new Map(); rows.forEach(d=>{const key=[d.urusan,d.kategori,d.kode,d.indikator].join('|'); if(!map.has(key)) map.set(key,d);}); return [...map.values()];}
 function trendOf(rows, ind, targetYear=null){
   const arr=rows
@@ -174,7 +230,7 @@ if(executiveMode){
 );
 
 }
-  const selectedYear=yearFilter.value;
+  const selectedYear=getSelectedDashboardYear();
 
   kpiGrid.innerHTML=inds.map(ind=>{
     const latest=latestForIndicator(rows,ind);
@@ -265,7 +321,7 @@ if(executiveMode){
  }
  const barCanvas=document.getElementById('barChart');
  if(barCanvas){
-  const selectedYear=yearFilter.value==='all'?Math.max(...years):Number(yearFilter.value);
+  const selectedYear=getSelectedDashboardYear()==='all'?Math.max(...years.map(Number)):Number(getSelectedDashboardYear());
   const vals=inds.map(ind=>({label:ind.indikator.substring(0,35),v:rows.find(d=>d.tahun===selectedYear&&d.kode===ind.kode&&d.urusan===ind.urusan&&d.kategori===ind.kategori)?.nilai??null})).filter(x=>x.v!=null).sort((a,b)=>b.v-a.v).slice(0,15);
   barChart=new Chart(barCanvas,{type:'bar',data:{labels:vals.map(x=>x.label),datasets:[{label:'Nilai '+selectedYear,data:vals.map(x=>x.v)}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}}}});
  }
@@ -439,6 +495,68 @@ function resetFilters(){
 }
 function downloadPDF(){window.print();}
 const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbyAOiiLJdGAIW91ifMaWHp_dnpq8PS5aaXNoM3FHWWrqOGPLDD8-BYpmYTkmE7LYnuS/exec';
+
+const DASHBOARD_CACHE_KEY = 'miderDashboardCacheV1';
+let isDashboardLoading = false;
+
+function saveDashboardCache(rawData){
+  try{
+    localStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({
+      savedAt: Date.now(),
+      data: rawData
+    }));
+  }catch(error){
+    console.warn('Cache dashboard tidak bisa disimpan:', error);
+  }
+}
+
+function getDashboardCache(){
+  try{
+    const cached = localStorage.getItem(DASHBOARD_CACHE_KEY);
+    if(!cached) return null;
+
+    const parsed = JSON.parse(cached);
+    return parsed?.data || null;
+  }catch(error){
+    console.warn('Cache dashboard tidak bisa dibaca:', error);
+    return null;
+  }
+}
+
+function setRefreshButtonLoading(isLoading){
+  const btn = document.getElementById('manualRefreshBtn');
+  if(!btn) return;
+
+  btn.disabled = isLoading;
+  btn.textContent = isLoading ? '⏳ Memuat data...' : '🔄 Refresh Data';
+}
+
+function setupManualRefreshButton(){
+  const actions = document.querySelector('#dashboardLayer .actions') || document.querySelector('.actions');
+  if(!actions || document.getElementById('manualRefreshBtn')) return;
+
+  const btn = document.createElement('button');
+  btn.id = 'manualRefreshBtn';
+  btn.type = 'button';
+  btn.className = 'secondary';
+  btn.textContent = '🔄 Refresh Data';
+  btn.title = 'Ambil data terbaru dari Google Sheets';
+
+  btn.addEventListener('click', async function(){
+    if(isDashboardLoading) return;
+
+    try{
+      await loadDashboardData({forceRefresh:true, useCache:false, showLoading:true});
+    }catch(error){
+      console.error('Refresh manual gagal:', error);
+      alert('Gagal refresh data. Periksa koneksi internet dan URL API.');
+    }
+  });
+
+  actions.appendChild(btn);
+}
+
+
 
 function normalizeDashboardData(rawData){
   const rows = Array.isArray(rawData) ? rawData : (rawData && Array.isArray(rawData.data) ? rawData.data : []);
@@ -650,12 +768,8 @@ if(!DATA.length){
 throw new Error('Data KPI kosong atau header spreadsheet tidak sesuai.');
 }
 
-if(!window.dashboardInitialized){
-
-  populateFilters();
-
-  window.dashboardInitialized = true;
-}
+populateFilters();
+window.dashboardInitialized = true;
 
 setupMapLevelFilter();
 
@@ -665,10 +779,20 @@ populateSidebarMenu(activeLayer);
 render();
 }
 
-async function loadDashboardDataFromFetch(){
-  const response = await fetch(GOOGLE_SHEETS_API_URL + '?v=' + Date.now(), {cache: 'no-store'});
+async function loadDashboardDataFromFetch(options = {}){
+  const forceRefresh = options.forceRefresh === true;
+  const apiUrl = forceRefresh
+    ? GOOGLE_SHEETS_API_URL + '?v=' + Date.now()
+    : GOOGLE_SHEETS_API_URL;
+
+  const response = await fetch(apiUrl, {
+    cache: forceRefresh ? 'reload' : 'default'
+  });
+
   if(!response.ok) throw new Error('Gagal memuat data API: HTTP ' + response.status);
+
   const rawData = await response.json();
+  saveDashboardCache(rawData);
   startDashboard(rawData);
 }
 
@@ -678,6 +802,7 @@ function loadDashboardDataFromJsonp(){
 
     window[callbackName] = function(rawData){
       try{
+        saveDashboardCache(rawData);
         startDashboard(rawData);
         resolve();
       }catch(error){
@@ -700,9 +825,27 @@ function loadDashboardDataFromJsonp(){
   });
 }
 
-async function loadDashboardData(){
+async function loadDashboardData(options = {}){
+  const forceRefresh = options.forceRefresh === true;
+  const useCache = options.useCache !== false;
+  const showLoading = options.showLoading === true;
+
+  if(isDashboardLoading) return;
+
+  isDashboardLoading = true;
+  if(showLoading) setRefreshButtonLoading(true);
+
   try{
-    await loadDashboardDataFromFetch();
+    if(useCache && !forceRefresh){
+      const cachedData = getDashboardCache();
+
+      if(cachedData){
+        startDashboard(cachedData);
+      }
+    }
+
+    await loadDashboardDataFromFetch({forceRefresh:true});
+
   }catch(fetchError){
     console.warn('Fetch API gagal, mencoba mode JSONP:', fetchError);
 
@@ -712,15 +855,16 @@ async function loadDashboardData(){
       console.error(jsonpError);
 
       try{
-        const fallback = await fetch(GOOGLE_SHEETS_API_URL, {cache: 'no-store'});
-        if(!fallback.ok) throw new Error('Fallback data.json juga gagal');
+        const fallback = await fetch(GOOGLE_SHEETS_API_URL + '?v=' + Date.now(), {cache: 'reload'});
+        if(!fallback.ok) throw new Error('Fallback API juga gagal');
         const rawData = await fallback.json();
+        saveDashboardCache(rawData);
         startDashboard(rawData);
 
         document.body.insertAdjacentHTML(
           'afterbegin',
           `<div style="padding:10px 16px;background:#fef3c7;color:#92400e;font-weight:700">
-            Data Google Sheets belum bisa dimuat, dashboard sementara memakai data.json lokal.
+            Data Google Sheets sempat lambat dimuat, dashboard memakai hasil pembacaan terakhir dari API.
           </div>`
         );
       }catch(fallbackError){
@@ -733,9 +877,16 @@ async function loadDashboardData(){
         );
       }
     }
+  }finally{
+    isDashboardLoading = false;
+    if(showLoading) setRefreshButtonLoading(false);
+    setupManualRefreshButton();
   }
 }
-loadDashboardData();
+
+document.addEventListener('DOMContentLoaded', setupManualRefreshButton);
+loadDashboardData({forceRefresh:false, useCache:true});
+
 
 
 setTimeout(()=>{
@@ -873,11 +1024,25 @@ function showLayer(layerId){
     document.querySelector('.sidebar-menu:nth-of-type(2)').classList.add('active');
     populateSidebarMenu('map');
 
-    setTimeout(function(){
-      if(window.map){
-        window.map.invalidateSize();
-      }
-    },300);
+    // Pastikan peta Leaflet muncul normal saat layer Peta baru dibuka.
+    // Masalah umum: peta dibuat saat layer masih display:none sehingga ukuran canvas terbaca 0.
+    [80, 300, 700].forEach(function(delay){
+      setTimeout(function(){
+        if(typeof initMiderMap === 'function'){
+          initMiderMap();
+        }
+
+        if(typeof reloadMapGeojson === 'function' && !window.geoJsonLayer){
+          reloadMapGeojson();
+        }
+
+        if(typeof refreshMiderMapSize === 'function'){
+          refreshMiderMapSize();
+        }else if(window.map){
+          window.map.invalidateSize();
+        }
+      }, delay);
+    });
   }
 }
 
@@ -1165,19 +1330,9 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
 
 })();
 
-/* AUTO REFRESH DASHBOARD TANPA RESET TAMPILAN */
-
-setInterval(async function(){
-
-  console.log('Auto refresh dashboard...');
-
-  try{
-    await loadDashboardData();
-  }catch(error){
-    console.error('Auto refresh gagal:', error);
-  }
-
-}, 300000);
+/* AUTO REFRESH DIHILANGKAN
+   Data hanya diperbarui saat halaman dibuka ulang atau tombol Refresh Data ditekan.
+*/
 
 /* THEME TOGGLE LIGHT / DARK */
 

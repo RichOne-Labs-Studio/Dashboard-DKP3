@@ -14,12 +14,14 @@ let mapErrorControl = null;
 // Membuat peta Kota Cirebon dengan mode aman.
 // Jika elemen #map atau library Leaflet belum siap, file ini tidak membuat dashboard berhenti loading.
 const mapElement = document.getElementById('map');
-const isLeafletReady = typeof L !== 'undefined';
+function isLeafletReady(){
+  return typeof L !== 'undefined';
+}
 
 function initMiderMap(){
   const el = document.getElementById('map');
 
-  if(!el || !isLeafletReady){
+  if(!el || !isLeafletReady()){
     console.warn('Peta belum siap: elemen #map atau library Leaflet tidak ditemukan.');
     return false;
   }
@@ -55,6 +57,7 @@ function refreshMiderMapSize(){
   });
 }
 
+window.initMiderMap = initMiderMap;
 window.refreshMiderMapSize = refreshMiderMapSize;
 
 initMiderMap();
@@ -461,6 +464,7 @@ function reloadMapGeojson(){
   if(geoJsonLayer){
     window.map.removeLayer(geoJsonLayer);
     geoJsonLayer = null;
+    window.geoJsonLayer = null;
   }
 
   selectedMapLayer = null;
@@ -565,6 +569,10 @@ document.addEventListener('click', function(event){
   const text = (target && target.textContent ? target.textContent : '').toLowerCase();
 
   if(text.includes('mider peta') || text.includes('peta')){
+    initMiderMap();
+    if(!window.geoJsonLayer && typeof reloadMapGeojson === 'function'){
+      reloadMapGeojson();
+    }
     refreshMiderMapSize();
   }
 });
@@ -579,6 +587,8 @@ document.addEventListener('DOMContentLoaded', function(){
     const isVisible = mapLayer.style.display !== 'none';
 
     if(isVisible){
+      initMiderMap();
+
       if(!geoJsonLayer && typeof reloadMapGeojson === 'function'){
         reloadMapGeojson();
       }
