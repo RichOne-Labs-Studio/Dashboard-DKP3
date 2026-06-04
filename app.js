@@ -186,24 +186,25 @@ if(executiveMode){
   }).join('') || '<div class="card kpi">Tidak ada data.</div>';
 }
 
+function getChartYears(){
+  const selectedYear =
+    yearFilter.value === 'all'
+      ? Math.max(...years)
+      : Number(yearFilter.value);
+
+  return years.filter(y => Number(y) <= selectedYear);
+}
+
 function makeDatasets(rows, inds){
+  const chartYears = getChartYears();
+
   return inds.slice(0,12).map(ind => ({
     label: ind.indikator.substring(0,48),
 
-    data: years.map(y => {
-
-      const selectedYear =
-        yearFilter.value === 'all'
-          ? Math.max(...years)
-          : Number(yearFilter.value);
-
-      if(y > selectedYear){
-        return null;
-      }
-
+    data: chartYears.map(y => {
       const r = DATA.find(
         d =>
-          d.tahun === y &&
+          Number(d.tahun) === Number(y) &&
           d.kode === ind.kode &&
           d.urusan === ind.urusan &&
           d.kategori === ind.kategori
@@ -257,7 +258,7 @@ if(executiveMode){
 
  const mainCanvas=document.getElementById('mainChart');
  if(mainCanvas){
-  mainChart=new Chart(mainCanvas,{type:'line',data:{labels:years,datasets:makeDatasets(rows,inds)},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:false}}}});
+  mainChart=new Chart(mainCanvas,{type:'line',data:{labels:getChartYears(),datasets:makeDatasets(rows,inds)},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:false}}}});
  }
  const barCanvas=document.getElementById('barChart');
  if(barCanvas){
@@ -267,28 +268,49 @@ if(executiveMode){
  }
  renderMiniCharts(rows,inds);
 }
-function renderMiniCharts(rows,inds){ miniCharts.forEach(c=>c.destroy()); miniCharts=[]; indicatorCharts.innerHTML=inds.map((ind,i)=>`<div class="card kpi smallChart"><h3>${ind.indikator}</h3><canvas id="mini${i}"></canvas><div class="meta">${ind.urusan} • ${ind.kategori}</div></div>`).join(''); inds.forEach((ind,i)=>{const vals=years.map(y=>rows.find(d=>d.tahun===y&&d.kode===ind.kode&&d.urusan===ind.urusan&&d.kategori===ind.kategori)?.nilai??null); const allowedCharts = ['line','bar','pie','doughnut','radar','polarArea'];const type = allowedCharts.includes(ind.chart)? ind.chart: 'line'; miniCharts.push(new Chart(document.getElementById('mini'+i),{type,data:{labels:years,datasets:[{label:ind.indikator,data:vals,fill:true,tension:.35,borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:false}}}}));});}
-function renderInsights(rows){
-  const inds=groupIndicators(rows);
-  const selectedYear=yearFilter.value;
+function renderMiniCharts(rows,inds){
+  miniCharts.forEach(c=>c.destroy());
+  miniCharts=[];
 
-  let ranked=inds.map(ind=>{
-    const latest=latestForIndicator(rows,ind);
-    const yoyYear=selectedYear==='all' ? latest?.tahun : selectedYear;
-    return {ind,tr:trendOf(DATA,ind,yoyYear)};
-  }).filter(x=>x.tr.change!=null);
+  const chartYears = getChartYears();
 
-  let up=ranked.filter(x=>x.tr.change>0).sort((a,b)=>b.tr.change-a.tr.change).slice(0,3);
-  let down=ranked.filter(x=>x.tr.change<0).sort((a,b)=>a.tr.change-b.tr.change).slice(0,3);
+  indicatorCharts.innerHTML=inds.map((ind,i)=>`<div class="card kpi smallChart"><h3>${ind.indikator}</h3><canvas id="mini${i}"></canvas><div class="meta">${ind.urusan} • ${ind.kategori}</div></div>`).join('');
 
-  insightList.innerHTML=[
-    ...up.map(x=>`<li><b>${x.ind.indikator}</b> YoY naik ${Math.abs(x.tr.change).toFixed(2)}% dibanding tahun sebelumnya.</li>`),
-    ...down.map(x=>`<li><b>${x.ind.indikator}</b> YoY turun ${Math.abs(x.tr.change).toFixed(2)}% dibanding tahun sebelumnya.</li>`),
-    '<li><b>Keamanan pangan</b> pada pangan, ikan, dan hewan relatif tinggi, mayoritas berada sekitar 97%–100%.</li>',
-    '<li><b>Food waste</b> meningkat konsisten sehingga perlu penguatan efisiensi distribusi dan pengurangan kehilangan pangan.</li>'
-  ].join('');
+  inds.forEach((ind,i)=>{
+    const vals=chartYears.map(y=>
+      DATA.find(
+        d =>
+          Number(d.tahun)===Number(y) &&
+          d.kode===ind.kode &&
+          d.urusan===ind.urusan &&
+          d.kategori===ind.kategori
+      )?.nilai??null
+    );
 
-  relationList.innerHTML=`<li><b>Ketersediaan pangan vs food waste:</b> ketersediaan naik tajam, tetapi food waste juga naik; produksi belum sepenuhnya diikuti efisiensi konsumsi/distribusi.</li><li><b>Luas lahan vs produktivitas:</b> luas lahan pertanian meningkat kembali pada 2025, sementara produktivitas juga naik; ini menunjukkan perbaikan kapasitas lahan dan intensifikasi pertanian.</li><li><b>Populasi ternak vs produksi daging:</b> keduanya meningkat, menunjukkan penguatan subsektor peternakan.</li><li><b>Produksi perikanan vs konsumsi ikan:</b> keduanya meningkat; pasar konsumsi lokal tampak menyerap peningkatan produksi.</li><li><b>Produksi naik vs PDRB turun:</b> pada perikanan dan pertanian, kontribusi PDRB menurun; nilai tambah ekonomi perlu diperkuat.</li>`;
+    const allowedCharts = ['line','bar','pie','doughnut','radar','polarArea'];
+    const type = allowedCharts.includes(ind.chart)? ind.chart: 'line';
+
+    miniCharts.push(new Chart(document.getElementById('mini'+i),{
+      type,
+      data:{
+        labels:chartYears,
+        datasets:[{
+          label:ind.indikator,
+          data:vals,
+          fill:true,
+          tension:.35,
+          borderWidth:3
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:false}},
+        scales:{x:{stacked:true},y:{stacked:true,beginAtZero:false}}
+      }
+    }));
+  });
 }
 function renderTable(rows){
   const sortedRows=[...rows].sort((a,b)=>(a.tahun||0)-(b.tahun||0)||String(a.urusan||'').localeCompare(String(b.urusan||''))||String(a.kategori||'').localeCompare(String(b.kategori||''))||String(a.indikator||'').localeCompare(String(b.indikator||'')));
