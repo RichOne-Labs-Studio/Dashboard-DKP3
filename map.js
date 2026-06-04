@@ -137,11 +137,53 @@ function defaultStyle(feature){
   const matched = getMatchingRows(nama)[0];
   const fill = getRowColor(matched, getKecamatanColor(kecamatan));
 
+  // Layer Kelurahan: jika filter Kecamatan/Kelurahan aktif,
+  // wilayah di luar pilihan dibuat redup agar wilayah terpilih lebih menonjol.
+  if(activeMapLevel === 'kelurahan'){
+    const featureKecamatan = String(getFeatureKecamatan(feature) || '').trim().toLowerCase();
+    const namaKelurahan = String(nama || '').trim().toLowerCase();
+
+    const kecamatanAktif = String(activeMapKecamatan || 'all').trim().toLowerCase();
+    const kelurahanAktif = String(activeMapKelurahan || 'all').trim().toLowerCase();
+
+    const isKecamatanFiltered = kecamatanAktif !== 'all';
+    const isKelurahanFiltered = kelurahanAktif !== 'all';
+
+    const matchKecamatan =
+      !isKecamatanFiltered ||
+      featureKecamatan === kecamatanAktif;
+
+    const matchKelurahan =
+      !isKelurahanFiltered ||
+      namaKelurahan === kelurahanAktif;
+
+    const isActiveArea = matchKecamatan && matchKelurahan;
+
+    if(!isActiveArea){
+      return {
+        color: '#94a3b8',
+        weight: 1,
+        fillColor: '#94a3b8',
+        fillOpacity: 0.04,
+        opacity: 0.20
+      };
+    }
+
+    return {
+      color: fill,
+      weight: isKelurahanFiltered ? 4 : 2.5,
+      fillColor: fill,
+      fillOpacity: isKecamatanFiltered || isKelurahanFiltered ? 0.72 : 0.38,
+      opacity: 1
+    };
+  }
+
   return {
     color: fill,
     weight: 2,
     fillColor: fill,
-    fillOpacity: activeMapLevel === 'kelurahan' ? 0.38 : 0.25
+    fillOpacity: 0.25,
+    opacity: 1
   };
 }
 
@@ -272,6 +314,29 @@ function updateMapIndikatorFilter(){
       .sort()
       .map(x => `<option value="${x}">${x}</option>`)
       .join('');
+}
+
+function updateMapVisualHighlight(){
+  if(geoJsonLayer){
+    geoJsonLayer.setStyle(defaultStyle);
+  }
+
+  if(selectedMapLayer && geoJsonLayer){
+    const nama = getWilayahName(selectedMapLayer.feature);
+    const rows = getMatchingRows(nama);
+
+    // Jika wilayah yang sebelumnya dipilih sudah tidak sesuai filter,
+    // hilangkan pilihan agar tampilan peta mengikuti filter baru.
+    if(!rows.length){
+      geoJsonLayer.resetStyle(selectedMapLayer);
+      selectedMapLayer.closePopup();
+      selectedMapLayer = null;
+      return;
+    }
+
+    selectedMapLayer.setStyle(selectedStyle(selectedMapLayer.feature));
+    refreshMapPopup();
+  }
 }
 
 function resetMapDataFilter(){

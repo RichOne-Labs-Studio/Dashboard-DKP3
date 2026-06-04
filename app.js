@@ -424,7 +424,9 @@ function populateMapWilayahFilters(){
 
     populateSidebarMenu('map');
 
-    if(typeof refreshMapPopup === 'function'){
+    if(typeof updateMapVisualHighlight === 'function'){
+      updateMapVisualHighlight();
+    }else if(typeof refreshMapPopup === 'function'){
       refreshMapPopup();
     }
   };
@@ -438,7 +440,9 @@ function populateMapWilayahFilters(){
 
     populateSidebarMenu('map');
 
-    if(typeof refreshMapPopup === 'function'){
+    if(typeof updateMapVisualHighlight === 'function'){
+      updateMapVisualHighlight();
+    }else if(typeof refreshMapPopup === 'function'){
       refreshMapPopup();
     }
   };
