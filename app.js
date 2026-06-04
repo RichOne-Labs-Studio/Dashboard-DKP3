@@ -591,7 +591,12 @@ function setupMapLevelFilter(){
       populateMapFilters();
     }
 
-    populateSidebarMenu('map');
+    const isMapLayerVisible =
+      document.getElementById('mapLayer')?.style.display === 'block';
+
+    if(isMapLayerVisible){
+      populateSidebarMenu('map');
+    }
 
     if(typeof reloadMapGeojson === 'function'){
       reloadMapGeojson();
@@ -652,9 +657,10 @@ if(!window.dashboardInitialized){
   window.dashboardInitialized = true;
 }
 
+setupMapLevelFilter();
+
 const activeLayer = document.getElementById('mapLayer')?.style.display === 'block' ? 'map' : 'dashboard';
 populateSidebarMenu(activeLayer);
-setupMapLevelFilter();
 
 render();
 }

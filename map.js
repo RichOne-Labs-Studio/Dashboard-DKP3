@@ -16,17 +16,48 @@ let mapErrorControl = null;
 const mapElement = document.getElementById('map');
 const isLeafletReady = typeof L !== 'undefined';
 
-if(mapElement && isLeafletReady){
-  window.map = window.map || L.map('map').setView([-6.7320, 108.5523], 12);
+function initMiderMap(){
+  const el = document.getElementById('map');
 
-  // Layer peta dasar OpenStreetMap
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap'
-  }).addTo(window.map);
-}else{
-  console.warn('Peta belum siap: elemen #map atau library Leaflet tidak ditemukan.');
+  if(!el || !isLeafletReady){
+    console.warn('Peta belum siap: elemen #map atau library Leaflet tidak ditemukan.');
+    return false;
+  }
+
+  // Cegah error "Map container is already initialized" jika file JS termuat ulang.
+  if(!window.map){
+    window.map = L.map(el).setView([-6.7320, 108.5523], 12);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(window.map);
+  }
+
+  return true;
 }
+
+function refreshMiderMapSize(){
+  if(!window.map) return;
+
+  // Leaflet sering kosong jika dibuat saat tab/layer masih display:none.
+  // Beberapa delay dipakai agar ukuran container sudah stabil setelah layer dibuka.
+  [80, 250, 600].forEach(delay => {
+    setTimeout(function(){
+      if(window.map){
+        window.map.invalidateSize();
+
+        if(geoJsonLayer && geoJsonLayer.getBounds && geoJsonLayer.getBounds().isValid()){
+          window.map.fitBounds(geoJsonLayer.getBounds(), { padding: [20, 20] });
+        }
+      }
+    }, delay);
+  });
+}
+
+window.refreshMiderMapSize = refreshMiderMapSize;
+
+initMiderMap();
 
 // Warna dasar kecamatan/wilayah
 function getKecamatanColor(nama){
@@ -422,7 +453,7 @@ function waitForMapDataAndPopulateFilter(){
 }
 
 function reloadMapGeojson(){
-  if(!window.map || !isLeafletReady){
+  if(!initMiderMap()){
     console.warn('Peta belum bisa dimuat karena Leaflet atau elemen peta belum siap.');
     return;
   }
@@ -492,6 +523,7 @@ function reloadMapGeojson(){
         padding: [20, 20]
       });
 
+      refreshMiderMapSize();
       waitForMapDataAndPopulateFilter();
     })
     .catch(error => {
@@ -522,6 +554,41 @@ function reloadMapGeojson(){
 }
 
 // Jalankan peta pertama kali dengan mode aman
-if(window.map && isLeafletReady){
+if(initMiderMap()){
   reloadMapGeojson();
+  refreshMiderMapSize();
 }
+
+// Saat layer peta dibuka dari tombol/sidebar, paksa Leaflet menghitung ulang ukuran.
+document.addEventListener('click', function(event){
+  const target = event.target;
+  const text = (target && target.textContent ? target.textContent : '').toLowerCase();
+
+  if(text.includes('mider peta') || text.includes('peta')){
+    refreshMiderMapSize();
+  }
+});
+
+// Pantau perubahan display pada #mapLayer agar peta muncul normal setelah layer ditampilkan.
+document.addEventListener('DOMContentLoaded', function(){
+  const mapLayer = document.getElementById('mapLayer');
+
+  if(!mapLayer || typeof MutationObserver === 'undefined') return;
+
+  const observer = new MutationObserver(function(){
+    const isVisible = mapLayer.style.display !== 'none';
+
+    if(isVisible){
+      if(!geoJsonLayer && typeof reloadMapGeojson === 'function'){
+        reloadMapGeojson();
+      }
+
+      refreshMiderMapSize();
+    }
+  });
+
+  observer.observe(mapLayer, {
+    attributes: true,
+    attributeFilter: ['style', 'class']
+  });
+});
