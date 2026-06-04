@@ -94,10 +94,10 @@ function populateFilters(){
 }
 function updateKategori(){ const u=document.getElementById('urusanFilter').value; let rows=DATA.filter(d=>u==='all'||d.urusan===u); let cats=[...new Set(rows.map(d=>d.kategori))].sort(); document.getElementById('kategoriFilter').innerHTML='<option value="all">Semua Kategori</option>'+cats.map(x=>`<option>${x}</option>`).join('');}
 function filteredBase(){
-const y=yearFilter.value;
-const u=urusanFilter.value;
-const k=kategoriFilter.value;
-const s=searchFilter.value.toLowerCase();
+const y=document.getElementById('yearFilter')?.value || 'all';
+const u=document.getElementById('urusanFilter')?.value || 'all';
+const k=document.getElementById('kategoriFilter')?.value || 'all';
+const s=(document.getElementById('searchFilter')?.value || '').toLowerCase();
 
 return DATA.filter(d=>
 (y==='all'||String(d.tahun)===String(y)) &&
@@ -187,10 +187,13 @@ if(executiveMode){
 }
 
 function getChartYears(){
+  if(!years.length) return [];
+
+  const yearEl = document.getElementById('yearFilter');
   const selectedYear =
-    yearFilter.value === 'all'
-      ? Math.max(...years)
-      : Number(yearFilter.value);
+    (yearEl?.value || 'all') === 'all'
+      ? Math.max(...years.map(Number))
+      : Number(yearEl.value);
 
   return years.filter(y => Number(y) <= selectedYear);
 }
@@ -312,6 +315,54 @@ function renderMiniCharts(rows,inds){
     }));
   });
 }
+
+function renderInsights(rows){
+  // Fungsi ini dibuat aman agar dashboard tidak gagal loading
+  // jika elemen insight tidak tersedia di HTML.
+  const insightListEl = document.getElementById('insightList');
+  const relationListEl = document.getElementById('relationList');
+
+  if(!insightListEl && !relationListEl){
+    return;
+  }
+
+  const inds = groupIndicators(rows || []);
+  const selectedYear = document.getElementById('yearFilter')?.value || 'all';
+
+  let ranked = inds.map(ind => {
+    const latest = latestForIndicator(rows || [], ind);
+    const yoyYear = selectedYear === 'all' ? latest?.tahun : selectedYear;
+    return { ind, tr: trendOf(DATA, ind, yoyYear) };
+  }).filter(x => x.tr && x.tr.change !== null && x.tr.change !== undefined);
+
+  const up = ranked
+    .filter(x => x.tr.change > 0)
+    .sort((a,b) => b.tr.change - a.tr.change)
+    .slice(0,3);
+
+  const down = ranked
+    .filter(x => x.tr.change < 0)
+    .sort((a,b) => a.tr.change - b.tr.change)
+    .slice(0,3);
+
+  if(insightListEl){
+    const items = [
+      ...up.map(x => `<li><b>${x.ind.indikator}</b> YoY naik ${Math.abs(x.tr.change).toLocaleString('id-ID',{maximumFractionDigits:2})}% dibanding tahun sebelumnya.</li>`),
+      ...down.map(x => `<li><b>${x.ind.indikator}</b> YoY turun ${Math.abs(x.tr.change).toLocaleString('id-ID',{maximumFractionDigits:2})}% dibanding tahun sebelumnya.</li>`)
+    ];
+
+    insightListEl.innerHTML = items.length
+      ? items.join('')
+      : '<li>Insight belum tersedia karena data tren masih terbatas.</li>';
+  }
+
+  if(relationListEl){
+    relationListEl.innerHTML =
+      '<li><b>Hubungan data:</b> pilih tahun, urusan, atau kategori untuk melihat pola perkembangan indikator secara lebih terarah.</li>' +
+      '<li><b>Tren tahunan:</b> grafik menampilkan data historis sampai tahun yang dipilih agar perubahan antar tahun lebih mudah dibaca.</li>';
+  }
+}
+
 function renderTable(rows){
   const sortedRows=[...rows].sort((a,b)=>(a.tahun||0)-(b.tahun||0)||String(a.urusan||'').localeCompare(String(b.urusan||''))||String(a.kategori||'').localeCompare(String(b.kategori||''))||String(a.indikator||'').localeCompare(String(b.indikator||'')));
 
@@ -333,13 +384,51 @@ function renderTable(rows){
     return `<tr><td>${d.tahun??'-'}</td><td>${d.urusan??'-'}</td><td>${d.kategori??'-'}</td><td>${d.indikator??'-'}</td><td>${d.satuan??'-'}</td><td>${d.nilai!==null&&d.nilai!==undefined?fmt(d.nilai):'-'}</td><td class="trend ${trendClass}">${yoyText}</td><td class="trend ${trendClass}">${ket}</td></tr>`;
   }).join('')+'</tbody>';
 }
-function render(){ const rows=filteredBase(); const inds=groupIndicators(rows); const selectedYear=yearFilter.value; const trends=inds.map(ind=>{const latest=latestForIndicator(rows,ind); const yoyYear=selectedYear==='all'?latest?.tahun:selectedYear; return trendOf(DATA,ind,yoyYear);}); sumIndicators.textContent=inds.length; sumYears.textContent=[...new Set(rows.map(d=>d.tahun))].length; sumUp.textContent=trends.filter(t=>t.change>0).length; sumDown.textContent=trends.filter(t=>t.change<0).length; activeFilterLabel.textContent=`${yearFilter.value==='all'?'Semua Tahun':yearFilter.value} • ${urusanFilter.value==='all'?'Semua Urusan':urusanFilter.value} • ${kategoriFilter.value==='all'?'Semua Kategori':kategoriFilter.value}`; renderKPIs(rows); renderCharts(rows); renderInsights(rows); renderTable(rows);}
+function render(){
+  const rows = filteredBase();
+  const inds = groupIndicators(rows);
+  const yearEl = document.getElementById('yearFilter');
+  const urusanEl = document.getElementById('urusanFilter');
+  const kategoriEl = document.getElementById('kategoriFilter');
+
+  const selectedYear = yearEl?.value || 'all';
+  const trends = inds.map(ind => {
+    const latest = latestForIndicator(rows, ind);
+    const yoyYear = selectedYear === 'all' ? latest?.tahun : selectedYear;
+    return trendOf(DATA, ind, yoyYear);
+  });
+
+  const sumIndicatorsEl = document.getElementById('sumIndicators');
+  const sumYearsEl = document.getElementById('sumYears');
+  const sumUpEl = document.getElementById('sumUp');
+  const sumDownEl = document.getElementById('sumDown');
+  const activeFilterLabelEl = document.getElementById('activeFilterLabel');
+
+  if(sumIndicatorsEl) sumIndicatorsEl.textContent = inds.length;
+  if(sumYearsEl) sumYearsEl.textContent = [...new Set(rows.map(d=>d.tahun))].length;
+  if(sumUpEl) sumUpEl.textContent = trends.filter(t=>t.change>0).length;
+  if(sumDownEl) sumDownEl.textContent = trends.filter(t=>t.change<0).length;
+  if(activeFilterLabelEl){
+    activeFilterLabelEl.textContent =
+      `${selectedYear === 'all' ? 'Semua Tahun' : selectedYear} • ${urusanEl?.value === 'all' ? 'Semua Urusan' : (urusanEl?.value || '-')} • ${kategoriEl?.value === 'all' ? 'Semua Kategori' : (kategoriEl?.value || '-')}`;
+  }
+
+  renderKPIs(rows);
+  renderCharts(rows);
+  renderInsights(rows);
+  renderTable(rows);
+}
 function resetFilters(){
-  yearFilter.value = 'all';
-  urusanFilter.value = 'all';
+  const yearEl = document.getElementById('yearFilter');
+  const urusanEl = document.getElementById('urusanFilter');
+  const kategoriEl = document.getElementById('kategoriFilter');
+  const searchEl = document.getElementById('searchFilter');
+
+  if(yearEl) yearEl.value = 'all';
+  if(urusanEl) urusanEl.value = 'all';
   updateKategori();
-  kategoriFilter.value = 'all';
-  searchFilter.value = '';
+  if(kategoriEl) kategoriEl.value = 'all';
+  if(searchEl) searchEl.value = '';
 
   activeDashboardUrusan = 'all';
   activeDashboardKategori = 'all';

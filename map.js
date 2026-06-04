@@ -9,15 +9,24 @@
 
 let selectedMapLayer = null;
 let geoJsonLayer = null;
+let mapErrorControl = null;
 
-// Membuat peta Kota Cirebon
-window.map = L.map('map').setView([-6.7320, 108.5523], 12);
+// Membuat peta Kota Cirebon dengan mode aman.
+// Jika elemen #map atau library Leaflet belum siap, file ini tidak membuat dashboard berhenti loading.
+const mapElement = document.getElementById('map');
+const isLeafletReady = typeof L !== 'undefined';
 
-// Layer peta dasar OpenStreetMap
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-  attribution: '&copy; OpenStreetMap'
-}).addTo(window.map);
+if(mapElement && isLeafletReady){
+  window.map = window.map || L.map('map').setView([-6.7320, 108.5523], 12);
+
+  // Layer peta dasar OpenStreetMap
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(window.map);
+}else{
+  console.warn('Peta belum siap: elemen #map atau library Leaflet tidak ditemukan.');
+}
 
 // Warna dasar kecamatan/wilayah
 function getKecamatanColor(nama){
@@ -85,6 +94,10 @@ function getRowColor(row, fallback){
   return row?.warna || row?.warna_peta || row?.color || fallback || '#2563eb';
 }
 
+function normalizeText(value){
+  return String(value || '').trim().toLowerCase();
+}
+
 function getMatchingRows(namaWilayah){
   const rowsSource = window.MAP_DATA || MAP_DATA || [];
 
@@ -100,14 +113,14 @@ function getMatchingRows(namaWilayah){
 
   if(activeMapLevel === 'kelurahan'){
     rows = rows.filter(d => {
-      const kelurahanMatch = String(d.kelurahan || '').toLowerCase() === String(namaWilayah || '').toLowerCase();
-      const kecamatanMatch = activeMapKecamatan === 'all' || String(d.kecamatan || '') === String(activeMapKecamatan);
-      const activeKelurahanMatch = activeMapKelurahan === 'all' || String(d.kelurahan || '') === String(activeMapKelurahan);
+      const kelurahanMatch = normalizeText(d.kelurahan) === normalizeText(namaWilayah);
+      const kecamatanMatch = activeMapKecamatan === 'all' || normalizeText(d.kecamatan) === normalizeText(activeMapKecamatan);
+      const activeKelurahanMatch = activeMapKelurahan === 'all' || normalizeText(d.kelurahan) === normalizeText(activeMapKelurahan);
       return kelurahanMatch && kecamatanMatch && activeKelurahanMatch;
     });
   }else{
     rows = rows.filter(d =>
-      String(d.kecamatan || '').toLowerCase() === String(namaWilayah || '').toLowerCase()
+      normalizeText(d.kecamatan) === normalizeText(namaWilayah)
     );
   }
 
@@ -214,11 +227,11 @@ function getFilteredRowsForMapControls(){
 
   if(activeMapLevel === 'kelurahan'){
     if(activeMapKecamatan !== 'all'){
-      rows = rows.filter(d => String(d.kecamatan || '') === String(activeMapKecamatan));
+      rows = rows.filter(d => normalizeText(d.kecamatan) === normalizeText(activeMapKecamatan));
     }
 
     if(activeMapKelurahan !== 'all'){
-      rows = rows.filter(d => String(d.kelurahan || '') === String(activeMapKelurahan));
+      rows = rows.filter(d => normalizeText(d.kelurahan) === normalizeText(activeMapKelurahan));
     }
   }
 
@@ -329,7 +342,7 @@ function updateMapVisualHighlight(){
     // hilangkan pilihan agar tampilan peta mengikuti filter baru.
     if(!rows.length){
       geoJsonLayer.resetStyle(selectedMapLayer);
-      selectedMapLayer.closePopup();
+      if(selectedMapLayer.closePopup) selectedMapLayer.closePopup();
       selectedMapLayer = null;
       return;
     }
@@ -377,7 +390,7 @@ function resetMapDataFilter(){
 function refreshMapPopup(){
   if(!selectedMapLayer) return;
 
-  selectedMapLayer.closePopup();
+  if(selectedMapLayer.closePopup) selectedMapLayer.closePopup();
 
   const nama = getWilayahName(selectedMapLayer.feature);
   const label = activeMapLevel === 'kelurahan' ? 'Kelurahan' : 'Kecamatan';
@@ -387,7 +400,7 @@ function refreshMapPopup(){
     ${getWilayahSummary(nama)}
   `);
 
-  selectedMapLayer.openPopup();
+  if(selectedMapLayer.openPopup) selectedMapLayer.openPopup();
 }
 
 function waitForMapDataAndPopulateFilter(){
@@ -409,6 +422,11 @@ function waitForMapDataAndPopulateFilter(){
 }
 
 function reloadMapGeojson(){
+  if(!window.map || !isLeafletReady){
+    console.warn('Peta belum bisa dimuat karena Leaflet atau elemen peta belum siap.');
+    return;
+  }
+
   if(geoJsonLayer){
     window.map.removeLayer(geoJsonLayer);
     geoJsonLayer = null;
@@ -417,7 +435,12 @@ function reloadMapGeojson(){
   selectedMapLayer = null;
 
   fetch(getActiveGeojsonFile())
-    .then(response => response.json())
+    .then(response => {
+      if(!response.ok){
+        throw new Error('File GeoJSON tidak ditemukan: ' + getActiveGeojsonFile() + ' (HTTP ' + response.status + ')');
+      }
+      return response.json();
+    })
     .then(geojsonData => {
       geoJsonLayer = L.geoJSON(geojsonData, {
         style: defaultStyle,
@@ -463,6 +486,8 @@ function reloadMapGeojson(){
         }
       }).addTo(window.map);
 
+      window.geoJsonLayer = geoJsonLayer;
+
       window.map.fitBounds(geoJsonLayer.getBounds(), {
         padding: [20, 20]
       });
@@ -472,7 +497,13 @@ function reloadMapGeojson(){
     .catch(error => {
       console.error('Gagal memuat file GeoJSON:', error);
 
+      if(mapErrorControl){
+        window.map.removeControl(mapErrorControl);
+        mapErrorControl = null;
+      }
+
       const info = L.control({position:'topright'});
+      mapErrorControl = info;
 
       info.onAdd = function(){
         const div = L.DomUtil.create('div', 'map-error-box');
@@ -490,5 +521,7 @@ function reloadMapGeojson(){
     });
 }
 
-// Jalankan peta pertama kali
-reloadMapGeojson();
+// Jalankan peta pertama kali dengan mode aman
+if(window.map && isLeafletReady){
+  reloadMapGeojson();
+}
