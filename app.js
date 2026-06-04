@@ -327,7 +327,7 @@ function resetFilters(){
   render();
 }
 function downloadPDF(){window.print();}
-const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbx1r0FE6IGDVPMHuwxFIq0G1-gM14zHfCwuICQEZ9j_10J53LByuHwPOF9Dhw4bdAW2/exec';
+const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbyAOiiLJdGAIW91ifMaWHp_dnpq8PS5aaXNoM3FHWWrqOGPLDD8-BYpmYTkmE7LYnuS/exec';
 
 function normalizeDashboardData(rawData){
   const rows = Array.isArray(rawData) ? rawData : (rawData && Array.isArray(rawData.data) ? rawData.data : []);
@@ -591,7 +591,7 @@ async function loadDashboardData(){
       console.error(jsonpError);
 
       try{
-        const fallback = await fetch('https://script.google.com/macros/s/AKfycbzTAUfaqWFxiERhswBOrpv2luomgYtGSju1hu8MRIVcZ2c142XWUtxgTjacm0lYKNPbKw/exec', {cache: 'no-store'});
+        const fallback = await fetch(GOOGLE_SHEETS_API_URL, {cache: 'no-store'});
         if(!fallback.ok) throw new Error('Fallback data.json juga gagal');
         const rawData = await fallback.json();
         startDashboard(rawData);
