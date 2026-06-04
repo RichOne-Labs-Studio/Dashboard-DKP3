@@ -177,22 +177,130 @@ function getMatchingRows(namaWilayah){
   return rows;
 }
 
-function getWilayahSummary(namaWilayah){
-  const rows = getMatchingRows(namaWilayah);
+function escapePopupHtml(value){
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
-  if(!rows.length){
-    return '<br><small>Tidak ada data sesuai filter peta.</small>';
+function formatPopupValue(value, satuan){
+  const hasValue = value !== null && value !== undefined && value !== '';
+  const numberValue = Number(value);
+
+  const formattedValue = hasValue && Number.isFinite(numberValue)
+    ? numberValue.toLocaleString('id-ID', {maximumFractionDigits: 2})
+    : (hasValue ? escapePopupHtml(value) : '-');
+
+  const cleanSatuan = String(satuan || '').trim();
+
+  if(!cleanSatuan){
+    return formattedValue;
   }
 
-  return rows.map(d => `
-    <br><small>
-      ${activeMapLevel === 'kelurahan' ? `Kecamatan: <b>${d.kecamatan || '-'}</b><br>` : ''}
-      Indikator: <b>${d.indikator || '-'}</b><br>
-      Nilai: <b>${d.nilai ?? '-'}</b><br>
-      Satuan: ${d.satuan || '-'}
-    </small>
-  `).join('<hr>');
+  // Untuk persen, tampilkan menempel: 97,71%
+  if(cleanSatuan === '%'){
+    return `${formattedValue}%`;
+  }
+
+  return `${formattedValue} ${escapePopupHtml(cleanSatuan)}`;
 }
+
+function makePopupDetailId(namaWilayah){
+  return 'mider_popup_detail_' + String(namaWilayah || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_') + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function getPopupYear(rows){
+  const selectedYear = document.getElementById('mapYearFilter')?.value || 'all';
+
+  if(selectedYear !== 'all'){
+    return selectedYear;
+  }
+
+  const numericYears = rows
+    .map(d => Number(d.tahun))
+    .filter(y => Number.isFinite(y));
+
+  if(numericYears.length){
+    return Math.max(...numericYears);
+  }
+
+  return rows[0]?.tahun || '-';
+}
+
+function getWilayahSummary(namaWilayah){
+  const allRows = getMatchingRows(namaWilayah);
+
+  if(!allRows.length){
+    return `
+      <div class="mider-popup-body">
+        <div class="mider-popup-year">Tahun -</div>
+        <div class="mider-popup-empty">Tidak ada data sesuai filter peta.</div>
+      </div>
+    `;
+  }
+
+  const tahun = getPopupYear(allRows);
+  const rows = allRows.filter(d => String(d.tahun || '') === String(tahun));
+  const displayRows = rows.length ? rows : allRows;
+
+  const visibleRows = displayRows.slice(0, 2);
+  const hiddenRows = displayRows.slice(2);
+  const detailId = makePopupDetailId(namaWilayah);
+
+  const renderItem = (d) => `
+    <div class="mider-popup-item">
+      <span class="mider-popup-label">${escapePopupHtml(d.indikator || '-')}</span>
+      <span class="mider-popup-separator">:</span>
+      <b>${formatPopupValue(d.nilai, d.satuan)}</b>
+    </div>
+  `;
+
+  return `
+    <div class="mider-popup-body">
+      <div class="mider-popup-year">Tahun ${escapePopupHtml(tahun)}</div>
+      <div class="mider-popup-list">
+        ${visibleRows.map(renderItem).join('')}
+      </div>
+      ${hiddenRows.length ? `
+        <button type="button"
+          class="mider-popup-toggle"
+          onclick="toggleMiderPopupDetail('${detailId}', this, ${hiddenRows.length})">
+          ▼ Tampilkan ${hiddenRows.length} indikator lainnya
+        </button>
+        <div id="${detailId}" class="mider-popup-detail" style="display:none;">
+          ${hiddenRows.map(renderItem).join('')}
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function getPopupContent(namaWilayah){
+  return `
+    <div class="mider-map-popup">
+      <div class="mider-popup-title">📍 ${escapePopupHtml(namaWilayah)}</div>
+      ${getWilayahSummary(namaWilayah)}
+    </div>
+  `;
+}
+
+window.toggleMiderPopupDetail = function(detailId, button, count){
+  const detail = document.getElementById(detailId);
+
+  if(!detail) return;
+
+  const isHidden = detail.style.display === 'none';
+  detail.style.display = isHidden ? 'block' : 'none';
+
+  button.innerHTML = isHidden
+    ? '▲ Sembunyikan detail'
+    : `▼ Tampilkan ${count} indikator lainnya`;
+};
 
 function defaultStyle(feature){
   const nama = getWilayahName(feature);
@@ -445,10 +553,7 @@ function refreshMapPopup(){
   const nama = getWilayahName(selectedMapLayer.feature);
   const label = activeMapLevel === 'kelurahan' ? 'Kelurahan' : 'Kecamatan';
 
-  selectedMapLayer.setPopupContent(`
-    <b>${label}: ${nama}</b>
-    ${getWilayahSummary(nama)}
-  `);
+  selectedMapLayer.setPopupContent(getPopupContent(nama));
 
   if(selectedMapLayer.openPopup) selectedMapLayer.openPopup();
 }
@@ -500,10 +605,7 @@ function reloadMapGeojson(){
           const nama = getWilayahName(feature);
           const label = activeMapLevel === 'kelurahan' ? 'Kelurahan' : 'Kecamatan';
 
-          layer.bindPopup(`
-            <b>${label}: ${nama}</b>
-            ${getWilayahSummary(nama)}
-          `);
+          layer.bindPopup(getPopupContent(nama));
 
           layer.on('mouseover', function(){
             if(selectedMapLayer !== layer){
