@@ -1536,3 +1536,51 @@ body.light-mode canvas{
     width:100%;
   }
 }
+
+.map-top-filter{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  gap:14px;
+  margin-top:18px;
+}
+
+.map-level-box,
+.map-year-box,
+.map-kecamatan-box,
+.map-kelurahan-box{
+  min-width:190px;
+}
+
+.map-level-box label,
+.map-year-box label,
+.map-kecamatan-box label,
+.map-kelurahan-box label{
+  display:block;
+  margin-bottom:8px;
+  font-size:13px;
+  font-weight:700;
+  color:var(--muted);
+}
+
+.map-level-box select,
+.map-year-box select,
+.map-kecamatan-box select,
+.map-kelurahan-box select{
+  width:100%;
+}
+
+@media(max-width:768px){
+  .map-top-filter{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .map-level-box,
+  .map-year-box,
+  .map-kecamatan-box,
+  .map-kelurahan-box{
+    width:100%;
+  }
+}
+

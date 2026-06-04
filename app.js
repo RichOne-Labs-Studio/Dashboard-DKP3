@@ -39,14 +39,45 @@ const DashboardColorPlugin = {
 };
 Chart.register(DashboardColorPlugin);
 
+// =========================
+// DATA UTAMA DASHBOARD
+// =========================
 let DATA = [];
 let MAP_DATA = [];
-let mainChart, barChart; let miniCharts=[];
+let MAP_DATA_KECAMATAN = [];
+let MAP_DATA_KELURAHAN = [];
+
+let mainChart, barChart;
+let miniCharts = [];
 let years = [];
 let selectedKecamatan = null;
+
+// =========================
+// STATUS FILTER PETA
+// =========================
+let activeMapLevel = 'kecamatan';
+let activeMapKecamatan = 'all';
+let activeMapKelurahan = 'all';
 let activeDashboardUrusan = 'all';
 let activeDashboardKategori = 'all';
 let activeDashboardIndikator = 'all';
+
+const EXECUTIVE_KPI = [
+  {
+    indikator: 'Indeks Ketahanan Pangan'
+  },
+  {
+    indikator: 'Prevalence of Undernourishment'
+  },
+  {
+    indikator: 'Kontribusi PDRB',
+    urusan: 'Pertanian'
+  },
+  {
+    indikator: 'Kontribusi PDRB',
+    urusan: 'Kelautan dan Perikanan'
+  }
+];
 
 let activeMapKategori = 'all';
 let activeMapIndikator = 'all';
@@ -119,7 +150,30 @@ function trendOf(rows, ind, targetYear=null){
   };
 }
 function renderKPIs(rows){
-  const inds=groupIndicators(rows);
+  let inds = groupIndicators(rows);
+const executiveMode =
+
+activeDashboardUrusan === 'all' &&
+activeDashboardKategori === 'all' &&
+activeDashboardIndikator === 'all';
+if(executiveMode){
+
+  inds = inds.filter(ind =>
+  EXECUTIVE_KPI.some(item => {
+
+    const indikatorMatch =
+      ind.indikator.toLowerCase()
+      .includes(item.indikator.toLowerCase());
+
+    const urusanMatch =
+      !item.urusan ||
+      ind.urusan === item.urusan;
+
+    return indikatorMatch && urusanMatch;
+  })
+);
+
+}
   const selectedYear=yearFilter.value;
 
   kpiGrid.innerHTML=inds.map(ind=>{
@@ -131,13 +185,76 @@ function renderKPIs(rows){
     return `<div class="card kpi"><h3>${ind.indikator}</h3><div class="value">${fmt(latest?.nilai)}</div><div class="meta">${ind.urusan} • ${ind.kategori} • ${ind.satuan||'-'}</div><div class="meta">Tahun: ${latest?.tahun||'-'} ${periode}</div><div class="trend ${tr.cls}">${tr.text}</div></div>`;
   }).join('') || '<div class="card kpi">Tidak ada data.</div>';
 }
-function makeDatasets(rows, inds){return inds.slice(0,12).map(ind=>({label:ind.indikator.substring(0,48), data:years.map(y=>{let r=rows.find(d=>d.tahun===y&&d.kode===ind.kode&&d.urusan===ind.urusan&&d.kategori===ind.kategori); return r?.nilai??null;}), fill: true, tension:.35, borderWidth:3}));}
+
+function makeDatasets(rows, inds){
+  return inds.slice(0,12).map(ind => ({
+    label: ind.indikator.substring(0,48),
+
+    data: years.map(y => {
+
+      const selectedYear =
+        yearFilter.value === 'all'
+          ? Math.max(...years)
+          : Number(yearFilter.value);
+
+      if(y > selectedYear){
+        return null;
+      }
+
+      const r = DATA.find(
+        d =>
+          d.tahun === y &&
+          d.kode === ind.kode &&
+          d.urusan === ind.urusan &&
+          d.kategori === ind.kategori
+      );
+
+      return r?.nilai ?? null;
+    }),
+
+    fill: true,
+    tension: .35,
+    borderWidth: 3
+  }));
+} 
+
 function renderCharts(rows){
  if(mainChart) mainChart.destroy();
  if(barChart) barChart.destroy();
  mainChart = null;
  barChart = null;
- const inds=groupIndicators(rows);
+ let inds = groupIndicators(rows);
+const executiveMode =
+
+activeDashboardUrusan === 'all' &&
+activeDashboardKategori === 'all' &&
+activeDashboardIndikator === 'all';
+
+if(executiveMode){
+
+  inds = inds.filter(ind =>
+
+    EXECUTIVE_KPI.some(item => {
+
+      const indikatorMatch =
+        ind.indikator
+          .toLowerCase()
+          .includes(
+            item.indikator.toLowerCase()
+          );
+
+      const urusanMatch =
+        !item.urusan ||
+        ind.urusan === item.urusan;
+
+      return indikatorMatch && urusanMatch;
+
+    })
+
+  );
+
+}
+
  const mainCanvas=document.getElementById('mainChart');
  if(mainCanvas){
   mainChart=new Chart(mainCanvas,{type:'line',data:{labels:years,datasets:makeDatasets(rows,inds)},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:false}}}});
@@ -243,6 +360,137 @@ function normalizeDashboardData(rawData){
     .filter(row => row.tahun && row.urusan && row.kategori && row.kode && row.indikator);
 }
 
+
+// =========================
+// HELPER DATA PETA KECAMATAN / KELURAHAN
+// =========================
+function getActiveMapData(){
+  return activeMapLevel === 'kelurahan'
+    ? MAP_DATA_KELURAHAN
+    : MAP_DATA_KECAMATAN;
+}
+
+function updateMapKelurahanFilter(){
+  const kelurahanFilter = document.getElementById('mapKelurahanFilter');
+
+  if(!kelurahanFilter) return;
+
+  let rows = MAP_DATA_KELURAHAN || [];
+
+  if(activeMapKecamatan !== 'all'){
+    rows = rows.filter(d => String(d.kecamatan || '') === String(activeMapKecamatan));
+  }
+
+  const kelurahanList = [
+    ...new Set(rows.map(d => d.kelurahan).filter(Boolean))
+  ].sort();
+
+  kelurahanFilter.innerHTML =
+    '<option value="all">Semua Kelurahan</option>' +
+    kelurahanList.map(k => `<option value="${k}">${k}</option>`).join('');
+
+  kelurahanFilter.value = activeMapKelurahan;
+}
+
+function populateMapWilayahFilters(){
+  const kecamatanFilter = document.getElementById('mapKecamatanFilter');
+  const kelurahanFilter = document.getElementById('mapKelurahanFilter');
+
+  if(!kecamatanFilter || !kelurahanFilter) return;
+
+  const rows = MAP_DATA_KELURAHAN || [];
+
+  const kecamatanList = [
+    ...new Set(rows.map(d => d.kecamatan).filter(Boolean))
+  ].sort();
+
+  kecamatanFilter.innerHTML =
+    '<option value="all">Semua Kecamatan</option>' +
+    kecamatanList.map(k => `<option value="${k}">${k}</option>`).join('');
+
+  kecamatanFilter.value = activeMapKecamatan;
+
+  updateMapKelurahanFilter();
+
+  kecamatanFilter.onchange = function(){
+    activeMapKecamatan = this.value;
+    activeMapKelurahan = 'all';
+
+    updateMapKelurahanFilter();
+
+    if(typeof populateMapFilters === 'function'){
+      populateMapFilters();
+    }
+
+    populateSidebarMenu('map');
+
+    if(typeof refreshMapPopup === 'function'){
+      refreshMapPopup();
+    }
+  };
+
+  kelurahanFilter.onchange = function(){
+    activeMapKelurahan = this.value;
+
+    if(typeof populateMapFilters === 'function'){
+      populateMapFilters();
+    }
+
+    populateSidebarMenu('map');
+
+    if(typeof refreshMapPopup === 'function'){
+      refreshMapPopup();
+    }
+  };
+}
+
+function setupMapLevelFilter(){
+  const levelFilter = document.getElementById('mapLevelFilter');
+  const kecamatanBox = document.querySelector('.map-kecamatan-box');
+  const kelurahanBox = document.querySelector('.map-kelurahan-box');
+
+  if(!levelFilter) return;
+
+  function applyLevel(){
+    activeMapLevel = levelFilter.value || 'kecamatan';
+
+    activeMapKecamatan = 'all';
+    activeMapKelurahan = 'all';
+    activeMapKategori = 'all';
+    activeMapIndikator = 'all';
+
+    MAP_DATA = getActiveMapData();
+    window.MAP_DATA = MAP_DATA;
+
+    if(activeMapLevel === 'kelurahan'){
+      if(kecamatanBox) kecamatanBox.style.display = 'block';
+      if(kelurahanBox) kelurahanBox.style.display = 'block';
+    }else{
+      if(kecamatanBox) kecamatanBox.style.display = 'none';
+      if(kelurahanBox) kelurahanBox.style.display = 'none';
+    }
+
+    populateMapWilayahFilters();
+
+    if(typeof populateMapFilters === 'function'){
+      populateMapFilters();
+    }
+
+    populateSidebarMenu('map');
+
+    if(typeof reloadMapGeojson === 'function'){
+      reloadMapGeojson();
+    }
+
+    if(typeof refreshMapPopup === 'function'){
+      refreshMapPopup();
+    }
+  }
+
+  levelFilter.onchange = applyLevel;
+  applyLevel();
+}
+
 function startDashboard(rawData){
 
  const maintenanceStatus = String(rawData.maintenance || '').trim().toUpperCase();
@@ -262,8 +510,12 @@ function startDashboard(rawData){
   }
 
 DATA = normalizeDashboardData(rawData.kpi || rawData);
-MAP_DATA = rawData.peta || [];
+MAP_DATA_KECAMATAN = rawData.peta_kecamatan || rawData.peta || [];
+MAP_DATA_KELURAHAN = rawData.peta_kelurahan || [];
+
+MAP_DATA = getActiveMapData();
 window.MAP_DATA = MAP_DATA;
+
 
 /* Paksa isi ulang filter peta setelah data peta siap */
 setTimeout(function(){
@@ -287,6 +539,7 @@ if(!window.dashboardInitialized){
 
 const activeLayer = document.getElementById('mapLayer')?.style.display === 'block' ? 'map' : 'dashboard';
 populateSidebarMenu(activeLayer);
+setupMapLevelFilter();
 
 render();
 }
@@ -586,6 +839,16 @@ urusanBox.style.display = mode === 'map' ? 'none' : 'block';
   }
 
   let filteredRows = [...rows];
+
+  if(mode === 'map' && activeMapLevel === 'kelurahan'){
+    if(activeMapKecamatan !== 'all'){
+      filteredRows = filteredRows.filter(d => String(d.kecamatan || '') === String(activeMapKecamatan));
+    }
+
+    if(activeMapKelurahan !== 'all'){
+      filteredRows = filteredRows.filter(d => String(d.kelurahan || '') === String(activeMapKelurahan));
+    }
+  }
 
   if(mode === 'dashboard'){
     if(activeDashboardUrusan !== 'all'){

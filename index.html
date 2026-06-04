@@ -110,19 +110,40 @@ Dashboard Interaktif Kota Cirebon
 <div class="section">
 <div>
 
-<h2>Peta Interaktif Kecamatan</h2>
+<h2>Peta Interaktif</h2>
 
 <div class="map-top-filter">
 
+  <div class="map-level-box">
+    <label>Level Wilayah</label>
+    <select id="mapLevelFilter">
+      <option value="kecamatan">Kecamatan</option>
+      <option value="kelurahan">Kelurahan</option>
+    </select>
+  </div>
+
   <div class="map-year-box">
     <label>Tahun Peta</label>
-
     <select id="mapYearFilter"></select>
+  </div>
+
+  <div class="map-kecamatan-box">
+    <label>Kecamatan</label>
+    <select id="mapKecamatanFilter">
+      <option value="all">Semua Kecamatan</option>
+    </select>
+  </div>
+
+  <div class="map-kelurahan-box">
+    <label>Kelurahan</label>
+    <select id="mapKelurahanFilter">
+      <option value="all">Semua Kelurahan</option>
+    </select>
   </div>
 
 </div>
 
-<p>Klik kecamatan untuk melihat data sesuai filter peta.</p>
+<p>Klik wilayah untuk melihat data sesuai filter peta.</p>
 </div>
 </div>
 

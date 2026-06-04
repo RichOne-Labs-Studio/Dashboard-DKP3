@@ -1,12 +1,14 @@
 // =====================================================
-// PETA INTERAKTIF KECAMATAN DKP3
-// File: map.js
-// Syarat:
-// 1. Harus ada file cirebon_kecamatan.geojson
-// 2. app.js harus membuat window.MAP_DATA dari Sheet data_peta
+// PETA INTERAKTIF MIDER DKP3
+// Mendukung Level Wilayah: Kecamatan dan Kelurahan
+// Syarat file:
+// 1. cirebon_kecamatan.geojson
+// 2. cirebon_kelurahan.geojson
+// 3. app.js membuat window.MAP_DATA sesuai level wilayah
 // =====================================================
 
 let selectedMapLayer = null;
+let geoJsonLayer = null;
 
 // Membuat peta Kota Cirebon
 window.map = L.map('map').setView([-6.7320, 108.5523], 12);
@@ -17,8 +19,8 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap'
 }).addTo(window.map);
 
-// Warna khusus untuk membedakan kecamatan
-function getKecamatanColor(kecamatan){
+// Warna dasar kecamatan/wilayah
+function getKecamatanColor(nama){
   const colors = {
     'Harjamukti': '#2563eb',
     'Kesambi': '#16a34a',
@@ -27,98 +29,238 @@ function getKecamatanColor(kecamatan){
     'Kejaksan': '#dc2626'
   };
 
-  return colors[kecamatan] || '#64748b';
+  return colors[nama] || '#64748b';
 }
 
-function getKecamatanName(feature){
+function getActiveGeojsonFile(){
+  return activeMapLevel === 'kelurahan'
+    ? 'cirebon_kelurahan.geojson'
+    : 'cirebon_kecamatan.geojson';
+}
+
+function getWilayahName(feature){
   const props = feature.properties || {};
 
-  return (
-    props.nama ||
-    props.NAMA ||
+  if(activeMapLevel === 'kelurahan'){
+    return String(
+      props.village ||
+      props.kelurahan ||
+      props.KELURAHAN ||
+      props.nama ||
+      props.NAMA ||
+      props.NAMOBJ ||
+      props.name ||
+      props.NAME ||
+      ''
+    ).trim();
+  }
+
+  return String(
+    props.district ||
     props.kecamatan ||
     props.KECAMATAN ||
-    props.district ||
-    props.DISTRICT ||
+    props.WADMKC ||
+    props.nama ||
+    props.NAMA ||
+    props.NAMOBJ ||
     props.name ||
     props.NAME ||
-    props.NAMOBJ ||
+    ''
+  ).trim();
+}
+
+function getFeatureKecamatan(feature){
+  const props = feature.properties || {};
+
+  return String(
+    props.district ||
+    props.kecamatan ||
+    props.KECAMATAN ||
     props.WADMKC ||
     ''
-  ).toString().trim();
+  ).trim();
+}
+
+function getRowColor(row, fallback){
+  return row?.warna || row?.warna_peta || row?.color || fallback || '#2563eb';
+}
+
+function getMatchingRows(namaWilayah){
+  const rowsSource = window.MAP_DATA || MAP_DATA || [];
+
+  const tahun = document.getElementById('mapYearFilter')?.value || 'all';
+  const kategori = document.getElementById('mapKategoriFilter')?.value || 'all';
+  const indikator = document.getElementById('mapIndikatorFilter')?.value || 'all';
+
+  let rows = rowsSource.filter(d =>
+    (tahun === 'all' || String(d.tahun) === String(tahun)) &&
+    (kategori === 'all' || String(d.kategori || '') === String(kategori)) &&
+    (indikator === 'all' || String(d.indikator || '') === String(indikator))
+  );
+
+  if(activeMapLevel === 'kelurahan'){
+    rows = rows.filter(d => {
+      const kelurahanMatch = String(d.kelurahan || '').toLowerCase() === String(namaWilayah || '').toLowerCase();
+      const kecamatanMatch = activeMapKecamatan === 'all' || String(d.kecamatan || '') === String(activeMapKecamatan);
+      const activeKelurahanMatch = activeMapKelurahan === 'all' || String(d.kelurahan || '') === String(activeMapKelurahan);
+      return kelurahanMatch && kecamatanMatch && activeKelurahanMatch;
+    });
+  }else{
+    rows = rows.filter(d =>
+      String(d.kecamatan || '').toLowerCase() === String(namaWilayah || '').toLowerCase()
+    );
+  }
+
+  return rows;
+}
+
+function getWilayahSummary(namaWilayah){
+  const rows = getMatchingRows(namaWilayah);
+
+  if(!rows.length){
+    return '<br><small>Tidak ada data sesuai filter peta.</small>';
+  }
+
+  return rows.map(d => `
+    <br><small>
+      ${activeMapLevel === 'kelurahan' ? `Kecamatan: <b>${d.kecamatan || '-'}</b><br>` : ''}
+      Indikator: <b>${d.indikator || '-'}</b><br>
+      Nilai: <b>${d.nilai ?? '-'}</b><br>
+      Satuan: ${d.satuan || '-'}
+    </small>
+  `).join('<hr>');
 }
 
 function defaultStyle(feature){
-  const kecamatan = getKecamatanName(feature);
+  const nama = getWilayahName(feature);
+  const kecamatan = getFeatureKecamatan(feature) || nama;
+  const matched = getMatchingRows(nama)[0];
+  const fill = getRowColor(matched, getKecamatanColor(kecamatan));
 
   return {
-    color: getKecamatanColor(kecamatan),
+    color: fill,
     weight: 2,
-    fillColor: getKecamatanColor(kecamatan),
-    fillOpacity: 0.25
+    fillColor: fill,
+    fillOpacity: activeMapLevel === 'kelurahan' ? 0.38 : 0.25
   };
 }
 
 function hoverStyle(feature){
-  const kecamatan = getKecamatanName(feature);
+  const base = defaultStyle(feature);
 
   return {
-    color: getKecamatanColor(kecamatan),
+    color: base.color,
     weight: 3,
-    fillColor: getKecamatanColor(kecamatan),
-    fillOpacity: 0.45
+    fillColor: base.fillColor,
+    fillOpacity: 0.55
   };
 }
 
 function selectedStyle(feature){
-  const kecamatan = getKecamatanName(feature);
+  const base = defaultStyle(feature);
 
   return {
-    color: getKecamatanColor(kecamatan),
+    color: base.color,
     weight: 4,
-    fillColor: getKecamatanColor(kecamatan),
-    fillOpacity: 0.65
+    fillColor: base.fillColor,
+    fillOpacity: 0.70
   };
 }
 
-// Mengisi dropdown filter peta dari Sheet data_peta
-function populateMapFilters(){
+function getFilteredRowsForMapControls(){
+  let rows = window.MAP_DATA || MAP_DATA || [];
 
+  if(activeMapLevel === 'kelurahan'){
+    if(activeMapKecamatan !== 'all'){
+      rows = rows.filter(d => String(d.kecamatan || '') === String(activeMapKecamatan));
+    }
+
+    if(activeMapKelurahan !== 'all'){
+      rows = rows.filter(d => String(d.kelurahan || '') === String(activeMapKelurahan));
+    }
+  }
+
+  return rows;
+}
+
+// Mengisi dropdown filter peta dari data aktif
+function populateMapFilters(){
   const y = document.getElementById('mapYearFilter');
   const k = document.getElementById('mapKategoriFilter');
   const i = document.getElementById('mapIndikatorFilter');
 
   if(!y || !k || !i) return;
 
-  const rows = window.MAP_DATA || MAP_DATA || [];
+  const rows = getFilteredRowsForMapControls();
+
+  const currentYear = y.value || 'all';
+  const currentKategori = activeMapKategori || k.value || 'all';
+  const currentIndikator = activeMapIndikator || i.value || 'all';
 
   y.innerHTML = '<option value="all">Semua Tahun</option>' +
-[...new Set(rows.map(d=>d.tahun))].sort().map(x=>`<option>${x}</option>`).join('');
+    [...new Set(rows.map(d => d.tahun).filter(Boolean))]
+      .sort((a,b) => Number(a) - Number(b))
+      .map(x => `<option value="${x}">${x}</option>`)
+      .join('');
+
+  y.value = [...y.options].some(opt => opt.value === currentYear) ? currentYear : 'all';
 
   k.innerHTML = '<option value="all">Semua Kategori</option>' +
-[...new Set(rows.map(d=>d.kategori))].sort().map(x=>`<option>${x}</option>`).join('');
+    [...new Set(rows.map(d => d.kategori).filter(Boolean))]
+      .sort()
+      .map(x => `<option value="${x}">${x}</option>`)
+      .join('');
+
+  k.value = [...k.options].some(opt => opt.value === currentKategori) ? currentKategori : 'all';
+  activeMapKategori = k.value;
 
   updateMapIndikatorFilter();
 
-  y.onchange = refreshMapPopup;
+  i.value = [...i.options].some(opt => opt.value === currentIndikator) ? currentIndikator : 'all';
+  activeMapIndikator = i.value;
 
-  k.onchange = function(){
-    updateMapIndikatorFilter();
+  y.onchange = function(){
     refreshMapPopup();
+    if(geoJsonLayer) geoJsonLayer.setStyle(defaultStyle);
   };
 
-  i.onchange = refreshMapPopup;
+  k.onchange = function(){
+    activeMapKategori = this.value;
+    activeMapIndikator = 'all';
+
+    updateMapIndikatorFilter();
+
+    if(i) i.value = 'all';
+
+    if(typeof populateSidebarMenu === 'function'){
+      populateSidebarMenu('map');
+    }
+
+    refreshMapPopup();
+    if(geoJsonLayer) geoJsonLayer.setStyle(defaultStyle);
+  };
+
+  i.onchange = function(){
+    activeMapIndikator = this.value;
+
+    if(typeof populateSidebarMenu === 'function'){
+      populateSidebarMenu('map');
+    }
+
+    refreshMapPopup();
+    if(geoJsonLayer) geoJsonLayer.setStyle(defaultStyle);
+  };
 }
 
 // Mengisi indikator peta berdasarkan kategori yang dipilih
 function updateMapIndikatorFilter(){
-
   const k = document.getElementById('mapKategoriFilter');
   const i = document.getElementById('mapIndikatorFilter');
 
-  const rows = window.MAP_DATA || MAP_DATA || [];
+  if(!k || !i) return;
 
-  const selectedKategori = k.value;
+  const rows = getFilteredRowsForMapControls();
+  const selectedKategori = k.value || 'all';
 
   const filtered = rows.filter(d =>
     selectedKategori === 'all' ||
@@ -126,84 +268,63 @@ function updateMapIndikatorFilter(){
   );
 
   i.innerHTML = '<option value="all">Semua Indikator</option>' +
-  [...new Set(filtered.map(d => d.indikator).filter(Boolean))]
-    .sort()
-    .map(x => `<option>${x}</option>`)
-    .join('');
+    [...new Set(filtered.map(d => d.indikator).filter(Boolean))]
+      .sort()
+      .map(x => `<option value="${x}">${x}</option>`)
+      .join('');
 }
 
-// Reset filter khusus peta
 function resetMapDataFilter(){
-
   const y = document.getElementById('mapYearFilter');
   const k = document.getElementById('mapKategoriFilter');
   const i = document.getElementById('mapIndikatorFilter');
+  const kecamatan = document.getElementById('mapKecamatanFilter');
+  const kelurahan = document.getElementById('mapKelurahanFilter');
 
   if(y) y.value = 'all';
   if(k) k.value = 'all';
-
-  updateMapIndikatorFilter();
-
   if(i) i.value = 'all';
+  if(kecamatan) kecamatan.value = 'all';
+  if(kelurahan) kelurahan.value = 'all';
 
+  activeMapKecamatan = 'all';
+  activeMapKelurahan = 'all';
   activeMapKategori = 'all';
   activeMapIndikator = 'all';
+
+  if(typeof populateMapWilayahFilters === 'function'){
+    populateMapWilayahFilters();
+  }
+
+  populateMapFilters();
 
   if(typeof populateSidebarMenu === 'function'){
     populateSidebarMenu('map');
   }
 
+  if(geoJsonLayer){
+    geoJsonLayer.setStyle(defaultStyle);
+  }
+
   refreshMapPopup();
 }
 
-// Ringkasan data dari Sheet data_peta berdasarkan kecamatan dan filter peta
-function getKecamatanSummary(kecamatan){
-
-  const rowsSource = window.MAP_DATA || MAP_DATA || [];
-
-  const tahun = document.getElementById('mapYearFilter')?.value || 'all';
-  const kategori = document.getElementById('mapKategoriFilter')?.value || 'all';
-  const indikator = document.getElementById('mapIndikatorFilter')?.value || 'all';
-
-    const rows = rowsSource.filter(d =>
-    String(d.kecamatan || '').toLowerCase() === String(kecamatan || '').toLowerCase() &&
-    (tahun === 'all' || String(d.tahun) === String(tahun)) &&
-    (kategori === 'all' || String(d.kategori) === String(kategori)) &&
-    (indikator === 'all' || String(d.indikator) === String(indikator))
-  );
-
-  if(!rows.length){
-    return '<br><small>Tidak ada data sesuai filter peta.</small>';
-  }
-
-  return rows.map(d => `
-  <br><small>
-    Indikator: <b>${d.indikator || '-'}</b><br>
-    Nilai: <b>${d.nilai ?? '-'}</b><br>
-    Satuan: ${d.satuan || '-'}
-  </small>
-`).join('<hr>');
-}
-
-// Refresh popup jika filter peta berubah
 function refreshMapPopup(){
+  if(!selectedMapLayer) return;
 
-  if(selectedMapLayer){
   selectedMapLayer.closePopup();
-  
-const kecamatan = getKecamatanName(selectedMapLayer.feature);
 
-selectedMapLayer.setPopupContent(`
-<b>${kecamatan}</b>
-${getKecamatanSummary(kecamatan)}
-`);
+  const nama = getWilayahName(selectedMapLayer.feature);
+  const label = activeMapLevel === 'kelurahan' ? 'Kelurahan' : 'Kecamatan';
 
-selectedMapLayer.openPopup();
+  selectedMapLayer.setPopupContent(`
+    <b>${label}: ${nama}</b>
+    ${getWilayahSummary(nama)}
+  `);
+
+  selectedMapLayer.openPopup();
 }
 
-}
-
-// Jika MAP_DATA belum siap saat map.js dibaca, tunggu sebentar
 function waitForMapDataAndPopulateFilter(){
   let attempts = 0;
 
@@ -222,83 +343,87 @@ function waitForMapDataAndPopulateFilter(){
   }, 300);
 }
 
-// Memuat GeoJSON kecamatan
-fetch('cirebon_kecamatan.geojson')
-  .then(response => response.json())
-  .then(geojsonData => {
+function reloadMapGeojson(){
+  if(geoJsonLayer){
+    window.map.removeLayer(geoJsonLayer);
+    geoJsonLayer = null;
+  }
 
-    const geoLayer = L.geoJSON(geojsonData, {
+  selectedMapLayer = null;
 
-      style: defaultStyle,
+  fetch(getActiveGeojsonFile())
+    .then(response => response.json())
+    .then(geojsonData => {
+      geoJsonLayer = L.geoJSON(geojsonData, {
+        style: defaultStyle,
 
-      onEachFeature: function(feature, layer){
+        onEachFeature: function(feature, layer){
+          const nama = getWilayahName(feature);
+          const label = activeMapLevel === 'kelurahan' ? 'Kelurahan' : 'Kecamatan';
 
-        const kecamatan = getKecamatanName(feature);
+          layer.bindPopup(`
+            <b>${label}: ${nama}</b>
+            ${getWilayahSummary(nama)}
+          `);
 
-        layer.bindPopup(`
-  	<b>${kecamatan}</b>
-  	${getKecamatanSummary(kecamatan)}
-	`);
+          layer.on('mouseover', function(){
+            if(selectedMapLayer !== layer){
+              layer.setStyle(hoverStyle(feature));
+            }
+          });
 
-        layer.on('mouseover', function(){
-          if(selectedMapLayer !== layer){
-            layer.setStyle(hoverStyle(feature));
-          }
-        });
+          layer.on('mouseout', function(){
+            if(selectedMapLayer !== layer && geoJsonLayer){
+              geoJsonLayer.resetStyle(layer);
+            }
+          });
 
-        layer.on('mouseout', function(){
-          if(selectedMapLayer !== layer){
-            layer.setStyle(defaultStyle(feature));
-          }
-        });
+          layer.on('click', function(){
+            if(selectedMapLayer && geoJsonLayer){
+              geoJsonLayer.resetStyle(selectedMapLayer);
+            }
 
-        layer.on('click', function(){
+            selectedMapLayer = layer;
+            layer.setStyle(selectedStyle(feature));
 
-          if(selectedMapLayer){
-            selectedMapLayer.setStyle(defaultStyle(selectedMapLayer.feature));
-          }
+            if(layer.getBounds){
+              window.map.fitBounds(layer.getBounds(), {
+                padding: [20, 20],
+                maxZoom: activeMapLevel === 'kelurahan' ? 15 : 14
+              });
+            }
 
-          selectedMapLayer = layer;
-          layer.setStyle(selectedStyle(feature));
+            refreshMapPopup();
+          });
+        }
+      }).addTo(window.map);
 
-          if(layer.getBounds){
-            window.map.fitBounds(layer.getBounds(), {
-              padding: [20, 20],
-              maxZoom: 14
-            });
-          }
+      window.map.fitBounds(geoJsonLayer.getBounds(), {
+        padding: [20, 20]
+      });
 
-          refreshMapPopup();
+      waitForMapDataAndPopulateFilter();
+    })
+    .catch(error => {
+      console.error('Gagal memuat file GeoJSON:', error);
 
-        });
+      const info = L.control({position:'topright'});
 
-      }
+      info.onAdd = function(){
+        const div = L.DomUtil.create('div', 'map-error-box');
+        div.innerHTML = `
+          <div style="background:white;padding:10px 12px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.18);font-size:13px;color:#991b1b;font-weight:700;">
+            File GeoJSON belum ditemukan.<br>
+            Pastikan ada file:<br>
+            ${getActiveGeojsonFile()}
+          </div>
+        `;
+        return div;
+      };
 
-    }).addTo(window.map);
-
-    window.map.fitBounds(geoLayer.getBounds(), {
-      padding: [20, 20]
+      info.addTo(window.map);
     });
+}
 
-    waitForMapDataAndPopulateFilter();
-
-  })
-  .catch(error => {
-    console.error('Gagal memuat file GeoJSON:', error);
-
-    const info = L.control({position:'topright'});
-
-    info.onAdd = function(){
-      const div = L.DomUtil.create('div', 'map-error-box');
-      div.innerHTML = `
-        <div style="background:white;padding:10px 12px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.18);font-size:13px;color:#991b1b;font-weight:700;">
-          File GeoJSON belum ditemukan.<br>
-          Pastikan ada file:<br>
-          cirebon_kecamatan.geojson
-        </div>
-      `;
-      return div;
-    };
-
-    info.addTo(window.map);
-  });
+// Jalankan peta pertama kali
+reloadMapGeojson();
