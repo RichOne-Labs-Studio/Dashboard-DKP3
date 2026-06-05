@@ -419,8 +419,83 @@ function renderInsights(rows){
   }
 }
 
+function getDashboardDisplayedIndicators(rows){
+  let inds = groupIndicators(rows || []);
+
+  const executiveMode =
+    activeDashboardUrusan === 'all' &&
+    activeDashboardKategori === 'all' &&
+    activeDashboardIndikator === 'all';
+
+  if(executiveMode){
+    inds = inds.filter(ind =>
+      EXECUTIVE_KPI.some(item => {
+        const indikatorMatch =
+          String(ind.indikator || '')
+            .toLowerCase()
+            .includes(String(item.indikator || '').toLowerCase());
+
+        const urusanMatch =
+          !item.urusan ||
+          ind.urusan === item.urusan;
+
+        const kategoriMatch =
+          !item.kategori ||
+          ind.kategori === item.kategori;
+
+        const kodeMatch =
+          !item.kode ||
+          ind.kode === item.kode;
+
+        return indikatorMatch && urusanMatch && kategoriMatch && kodeMatch;
+      })
+    );
+  }
+
+  return inds;
+}
+
+function getMatrixRowsFromDisplayedIndicators(rows){
+  const inds = getDashboardDisplayedIndicators(rows);
+  const chartYears = getChartYears().map(Number);
+
+  if(!inds.length || !chartYears.length){
+    return [];
+  }
+
+  const indicatorKeys = new Set(
+    inds.map(ind => [ind.urusan, ind.kategori, ind.kode, ind.indikator].join('|'))
+  );
+
+  const u = document.getElementById('urusanFilter')?.value || 'all';
+  const k = document.getElementById('kategoriFilter')?.value || 'all';
+  const s = (document.getElementById('searchFilter')?.value || '').toLowerCase();
+
+  return DATA.filter(d => {
+    const key = [d.urusan, d.kategori, d.kode, d.indikator].join('|');
+
+    return indicatorKeys.has(key) &&
+      chartYears.includes(Number(d.tahun)) &&
+      (u === 'all' || d.urusan === u) &&
+      (k === 'all' || d.kategori === k) &&
+      (!s || String(d.indikator || '').toLowerCase().includes(s)) &&
+      (!selectedKecamatan || String(d.kecamatan || '').toLowerCase() === String(selectedKecamatan).toLowerCase());
+  });
+}
+
 function renderTable(rows){
-  const sortedRows=[...rows].sort((a,b)=>(a.tahun||0)-(b.tahun||0)||String(a.urusan||'').localeCompare(String(b.urusan||''))||String(a.kategori||'').localeCompare(String(b.kategori||''))||String(a.indikator||'').localeCompare(String(b.indikator||'')));
+  const matrixRows = getMatrixRowsFromDisplayedIndicators(rows);
+
+  if(!matrixTable) return;
+
+  if(!matrixRows.length){
+    matrixTable.innerHTML =
+      '<thead><tr><th>Tahun</th><th>Urusan</th><th>Kategori</th><th>Indikator</th><th>Satuan</th><th>Nilai</th><th>YoY</th><th>Keterangan</th></tr></thead>' +
+      '<tbody><tr><td colspan="8">Tidak ada data sesuai tampilan KPI/grafik.</td></tr></tbody>';
+    return;
+  }
+
+  const sortedRows=[...matrixRows].sort((a,b)=>(a.tahun||0)-(b.tahun||0)||String(a.urusan||'').localeCompare(String(b.urusan||''))||String(a.kategori||'').localeCompare(String(b.kategori||''))||String(a.indikator||'').localeCompare(String(b.indikator||'')));
 
   matrixTable.innerHTML='<thead><tr><th>Tahun</th><th>Urusan</th><th>Kategori</th><th>Indikator</th><th>Satuan</th><th>Nilai</th><th>YoY</th><th>Keterangan</th></tr></thead><tbody>'+
   sortedRows.map(d=>{
