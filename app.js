@@ -165,6 +165,39 @@ function latestForIndicator(rows, ind){
   return r[0];
 }
 function groupIndicators(rows){ const map=new Map(); rows.forEach(d=>{const key=[d.urusan,d.kategori,d.kode,d.indikator].join('|'); if(!map.has(key)) map.set(key,d);}); return [...map.values()];}
+
+// =========================
+// FILTER TAMPILAN UTAMA / EKSEKUTIF
+// =========================
+function isExecutiveDashboardMode(){
+  return activeDashboardUrusan === 'all' &&
+    activeDashboardKategori === 'all' &&
+    activeDashboardIndikator === 'all';
+}
+
+function isExecutiveIndicator(ind){
+  if(!ind || !ind.indikator) return false;
+
+  return EXECUTIVE_KPI.some(item => {
+    const indikatorMatch = String(ind.indikator || '')
+      .toLowerCase()
+      .includes(String(item.indikator || '').toLowerCase());
+
+    const urusanMatch = !item.urusan || ind.urusan === item.urusan;
+
+    return indikatorMatch && urusanMatch;
+  });
+}
+
+function getDashboardDisplayRows(rows){
+  const sourceRows = Array.isArray(rows) ? rows : [];
+
+  if(!isExecutiveDashboardMode()){
+    return sourceRows;
+  }
+
+  return sourceRows.filter(isExecutiveIndicator);
+}
 function trendOf(rows, ind, targetYear=null){
   const arr=rows
     .filter(d=>d.kode===ind.kode&&d.urusan===ind.urusan&&d.kategori===ind.kategori&&d.nilai!==null&&d.nilai!==undefined)
@@ -207,29 +240,7 @@ function trendOf(rows, ind, targetYear=null){
 }
 function renderKPIs(rows){
   let inds = groupIndicators(rows);
-const executiveMode =
-
-activeDashboardUrusan === 'all' &&
-activeDashboardKategori === 'all' &&
-activeDashboardIndikator === 'all';
-if(executiveMode){
-
-  inds = inds.filter(ind =>
-  EXECUTIVE_KPI.some(item => {
-
-    const indikatorMatch =
-      ind.indikator.toLowerCase()
-      .includes(item.indikator.toLowerCase());
-
-    const urusanMatch =
-      !item.urusan ||
-      ind.urusan === item.urusan;
-
-    return indikatorMatch && urusanMatch;
-  })
-);
-
-}
+if(isExecutiveDashboardMode()) inds = inds.filter(isExecutiveIndicator);
   const selectedYear=getSelectedDashboardYear();
 
   kpiGrid.innerHTML=inds.map(ind=>{
@@ -284,36 +295,7 @@ function renderCharts(rows){
  mainChart = null;
  barChart = null;
  let inds = groupIndicators(rows);
-const executiveMode =
-
-activeDashboardUrusan === 'all' &&
-activeDashboardKategori === 'all' &&
-activeDashboardIndikator === 'all';
-
-if(executiveMode){
-
-  inds = inds.filter(ind =>
-
-    EXECUTIVE_KPI.some(item => {
-
-      const indikatorMatch =
-        ind.indikator
-          .toLowerCase()
-          .includes(
-            item.indikator.toLowerCase()
-          );
-
-      const urusanMatch =
-        !item.urusan ||
-        ind.urusan === item.urusan;
-
-      return indikatorMatch && urusanMatch;
-
-    })
-
-  );
-
-}
+if(isExecutiveDashboardMode()) inds = inds.filter(isExecutiveIndicator);
 
  const mainCanvas=document.getElementById('mainChart');
  if(mainCanvas){
@@ -442,14 +424,15 @@ function renderTable(rows){
 }
 function render(){
   const rows = filteredBase();
-  const inds = groupIndicators(rows);
+  const displayRows = getDashboardDisplayRows(rows);
+  const inds = groupIndicators(displayRows);
   const yearEl = document.getElementById('yearFilter');
   const urusanEl = document.getElementById('urusanFilter');
   const kategoriEl = document.getElementById('kategoriFilter');
 
   const selectedYear = yearEl?.value || 'all';
   const trends = inds.map(ind => {
-    const latest = latestForIndicator(rows, ind);
+    const latest = latestForIndicator(displayRows, ind);
     const yoyYear = selectedYear === 'all' ? latest?.tahun : selectedYear;
     return trendOf(DATA, ind, yoyYear);
   });
@@ -461,7 +444,7 @@ function render(){
   const activeFilterLabelEl = document.getElementById('activeFilterLabel');
 
   if(sumIndicatorsEl) sumIndicatorsEl.textContent = inds.length;
-  if(sumYearsEl) sumYearsEl.textContent = [...new Set(rows.map(d=>d.tahun))].length;
+  if(sumYearsEl) sumYearsEl.textContent = [...new Set(displayRows.map(d=>d.tahun))].length;
   if(sumUpEl) sumUpEl.textContent = trends.filter(t=>t.change>0).length;
   if(sumDownEl) sumDownEl.textContent = trends.filter(t=>t.change<0).length;
   if(activeFilterLabelEl){
@@ -469,14 +452,38 @@ function render(){
       `${selectedYear === 'all' ? 'Semua Tahun' : selectedYear} • ${urusanEl?.value === 'all' ? 'Semua Urusan' : (urusanEl?.value || '-')} • ${kategoriEl?.value === 'all' ? 'Semua Kategori' : (kategoriEl?.value || '-')}`;
   }
 
-  renderKPIs(rows);
-  renderCharts(rows);
-  renderInsights(rows);
-  renderTable(rows);
+  renderKPIs(displayRows);
+  renderCharts(displayRows);
+  renderInsights(displayRows);
+  renderTable(displayRows);
 
   if(typeof scheduleSmartKpiIcons === 'function'){
     scheduleSmartKpiIcons();
   }
+}
+
+// Scroll vertikal tetap diarahkan ke konten utama ketika kursor berada di area tabel.
+// Scroll horizontal tabel tetap dipertahankan, termasuk saat memakai Shift + roda mouse/trackpad.
+function setupMatrixTableWheelFix(){
+  const tableWrap = document.querySelector('.tableWrap');
+  const mainContent = document.getElementById('mainContent') || document.querySelector('.main-content');
+
+  if(!tableWrap || !mainContent || tableWrap.dataset.miderWheelFix === '1') return;
+
+  tableWrap.addEventListener('wheel', function(event){
+    const horizontalIntent = event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY);
+
+    if(horizontalIntent){
+      return;
+    }
+
+    if(event.deltaY !== 0){
+      event.preventDefault();
+      mainContent.scrollTop += event.deltaY;
+    }
+  }, {passive:false});
+
+  tableWrap.dataset.miderWheelFix = '1';
 }
 function resetFilters(){
   const yearEl = document.getElementById('yearFilter');
@@ -889,6 +896,7 @@ async function loadDashboardData(options = {}){
 }
 
 document.addEventListener('DOMContentLoaded', setupManualRefreshButton);
+document.addEventListener('DOMContentLoaded', setupMatrixTableWheelFix);
 loadDashboardData({forceRefresh:false, useCache:true});
 
 
