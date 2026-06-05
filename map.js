@@ -200,7 +200,6 @@ function formatPopupValue(value, satuan){
     return formattedValue;
   }
 
-  // Untuk persen, tampilkan menempel: 97,71%
   if(cleanSatuan === '%'){
     return `${formattedValue}%`;
   }
@@ -232,7 +231,78 @@ function getPopupYear(rows){
   return rows[0]?.tahun || '-';
 }
 
+function ensureMiderPopupStyles(){
+  if(document.getElementById('mider-popup-inline-style')) return;
+
+  const style = document.createElement('style');
+  style.id = 'mider-popup-inline-style';
+  style.textContent = `
+    .mider-map-popup{
+      min-width:190px;
+      max-width:270px;
+      line-height:1.45;
+      color:#0f172a;
+      font-family:Inter, "Segoe UI", Arial, sans-serif;
+    }
+    .mider-popup-title{
+      font-weight:800;
+      font-size:14px;
+      margin-bottom:8px;
+    }
+    .mider-popup-year{
+      font-size:13px;
+      color:#475569;
+      margin-bottom:8px;
+      font-weight:700;
+    }
+    .mider-popup-list,
+    .mider-popup-detail{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .mider-popup-detail{
+      margin-top:4px;
+    }
+    .mider-popup-item{
+      font-size:13px;
+      color:#0f172a;
+    }
+    .mider-popup-label{
+      font-weight:500;
+    }
+    .mider-popup-separator{
+      color:#64748b;
+      margin:0 3px;
+    }
+    .mider-popup-item b{
+      font-weight:800;
+    }
+    .mider-popup-toggle{
+      margin-top:10px;
+      padding-top:6px;
+      border-top:1px solid rgba(148,163,184,.25);
+      color:#64748b;
+      font-size:12px;
+      font-weight:600;
+      cursor:pointer;
+      user-select:none;
+    }
+    .mider-popup-toggle:hover{
+      color:#334155;
+      text-decoration:underline;
+    }
+    .mider-popup-empty{
+      font-size:12px;
+      color:#64748b;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 function getWilayahSummary(namaWilayah){
+  ensureMiderPopupStyles();
+
   const allRows = getMatchingRows(namaWilayah);
 
   if(!allRows.length){
@@ -267,13 +337,16 @@ function getWilayahSummary(namaWilayah){
         ${visibleRows.map(renderItem).join('')}
       </div>
       ${hiddenRows.length ? `
-        <button type="button"
-          class="mider-popup-toggle"
-          onclick="toggleMiderPopupDetail('${detailId}', this, ${hiddenRows.length})">
-          ▼ Tampilkan ${hiddenRows.length} indikator lainnya
-        </button>
         <div id="${detailId}" class="mider-popup-detail" style="display:none;">
           ${hiddenRows.map(renderItem).join('')}
+        </div>
+        <div
+          role="button"
+          tabindex="0"
+          class="mider-popup-toggle"
+          onclick="toggleMiderPopupDetail('${detailId}', this, ${hiddenRows.length})"
+          onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); toggleMiderPopupDetail('${detailId}', this, ${hiddenRows.length}); }">
+          ▼ Tampilkan ${hiddenRows.length} indikator lainnya
         </div>
       ` : ''}
     </div>
