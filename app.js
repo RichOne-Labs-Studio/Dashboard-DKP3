@@ -419,83 +419,8 @@ function renderInsights(rows){
   }
 }
 
-function getDashboardDisplayedIndicators(rows){
-  let inds = groupIndicators(rows || []);
-
-  const executiveMode =
-    activeDashboardUrusan === 'all' &&
-    activeDashboardKategori === 'all' &&
-    activeDashboardIndikator === 'all';
-
-  if(executiveMode){
-    inds = inds.filter(ind =>
-      EXECUTIVE_KPI.some(item => {
-        const indikatorMatch =
-          String(ind.indikator || '')
-            .toLowerCase()
-            .includes(String(item.indikator || '').toLowerCase());
-
-        const urusanMatch =
-          !item.urusan ||
-          ind.urusan === item.urusan;
-
-        const kategoriMatch =
-          !item.kategori ||
-          ind.kategori === item.kategori;
-
-        const kodeMatch =
-          !item.kode ||
-          ind.kode === item.kode;
-
-        return indikatorMatch && urusanMatch && kategoriMatch && kodeMatch;
-      })
-    );
-  }
-
-  return inds;
-}
-
-function getMatrixRowsFromDisplayedIndicators(rows){
-  const inds = getDashboardDisplayedIndicators(rows);
-  const chartYears = getChartYears().map(Number);
-
-  if(!inds.length || !chartYears.length){
-    return [];
-  }
-
-  const indicatorKeys = new Set(
-    inds.map(ind => [ind.urusan, ind.kategori, ind.kode, ind.indikator].join('|'))
-  );
-
-  const u = document.getElementById('urusanFilter')?.value || 'all';
-  const k = document.getElementById('kategoriFilter')?.value || 'all';
-  const s = (document.getElementById('searchFilter')?.value || '').toLowerCase();
-
-  return DATA.filter(d => {
-    const key = [d.urusan, d.kategori, d.kode, d.indikator].join('|');
-
-    return indicatorKeys.has(key) &&
-      chartYears.includes(Number(d.tahun)) &&
-      (u === 'all' || d.urusan === u) &&
-      (k === 'all' || d.kategori === k) &&
-      (!s || String(d.indikator || '').toLowerCase().includes(s)) &&
-      (!selectedKecamatan || String(d.kecamatan || '').toLowerCase() === String(selectedKecamatan).toLowerCase());
-  });
-}
-
 function renderTable(rows){
-  const matrixRows = getMatrixRowsFromDisplayedIndicators(rows);
-
-  if(!matrixTable) return;
-
-  if(!matrixRows.length){
-    matrixTable.innerHTML =
-      '<thead><tr><th>Tahun</th><th>Urusan</th><th>Kategori</th><th>Indikator</th><th>Satuan</th><th>Nilai</th><th>YoY</th><th>Keterangan</th></tr></thead>' +
-      '<tbody><tr><td colspan="8">Tidak ada data sesuai tampilan KPI/grafik.</td></tr></tbody>';
-    return;
-  }
-
-  const sortedRows=[...matrixRows].sort((a,b)=>(a.tahun||0)-(b.tahun||0)||String(a.urusan||'').localeCompare(String(b.urusan||''))||String(a.kategori||'').localeCompare(String(b.kategori||''))||String(a.indikator||'').localeCompare(String(b.indikator||'')));
+  const sortedRows=[...rows].sort((a,b)=>(a.tahun||0)-(b.tahun||0)||String(a.urusan||'').localeCompare(String(b.urusan||''))||String(a.kategori||'').localeCompare(String(b.kategori||''))||String(a.indikator||'').localeCompare(String(b.indikator||'')));
 
   matrixTable.innerHTML='<thead><tr><th>Tahun</th><th>Urusan</th><th>Kategori</th><th>Indikator</th><th>Satuan</th><th>Nilai</th><th>YoY</th><th>Keterangan</th></tr></thead><tbody>'+
   sortedRows.map(d=>{
@@ -548,6 +473,10 @@ function render(){
   renderCharts(rows);
   renderInsights(rows);
   renderTable(rows);
+
+  if(typeof scheduleSmartKpiIcons === 'function'){
+    scheduleSmartKpiIcons();
+  }
 }
 function resetFilters(){
   const yearEl = document.getElementById('yearFilter');
@@ -1034,10 +963,21 @@ function applySmartKpiIcons(){
   });
 }
 
-// jalankan setelah render dan setelah filter berubah
-setInterval(applySmartKpiIcons, 900);
-setTimeout(applySmartKpiIcons, 300);
-setTimeout(applySmartKpiIcons, 1000);
+// Jalankan hanya setelah render/perubahan tampilan, bukan interval terus-menerus.
+let smartKpiIconFrame = null;
+function scheduleSmartKpiIcons(){
+  if(smartKpiIconFrame){
+    cancelAnimationFrame(smartKpiIconFrame);
+  }
+
+  smartKpiIconFrame = requestAnimationFrame(function(){
+    smartKpiIconFrame = null;
+    applySmartKpiIcons();
+  });
+}
+
+setTimeout(scheduleSmartKpiIcons, 300);
+setTimeout(scheduleSmartKpiIcons, 1000);
 
 /* HEADER AUTO-HIDE KHUSUS MOBILE */
 (function(){
@@ -1377,33 +1317,10 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
   showLayer('dashboardLayer');
 }
 
-/* DISABLE MOBILE PULL TO REFRESH */
-
-(function(){
-
-  let touchStartY = 0;
-
-  document.addEventListener('touchstart', function(e){
-
-    touchStartY = e.touches[0].clientY;
-
-  }, { passive:true });
-
-  document.addEventListener('touchmove', function(e){
-
-    const touchY = e.touches[0].clientY;
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-    /* jika di paling atas dan swipe ke bawah */
-    if(scrollTop <= 0 && touchY > touchStartY){
-
-      e.preventDefault();
-
-    }
-
-  }, { passive:false });
-
-})();
+/* MOBILE SCROLL OPTIMIZED
+   Pull-to-refresh dan scroll chaining ditangani lewat CSS overscroll-behavior.
+   Tidak memakai touchmove preventDefault global agar scroll sidebar/konten/peta tetap responsif.
+*/
 
 /* AUTO REFRESH DIHILANGKAN
    Data hanya diperbarui saat halaman dibuka ulang atau tombol Refresh Data ditekan.
