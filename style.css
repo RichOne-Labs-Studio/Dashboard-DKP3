@@ -612,10 +612,13 @@ button.green{
 
 .tableWrap{
   overflow-x:auto!important;
-  overflow-y:visible!important;
+  overflow-y:hidden!important;
   max-width:100%!important;
   max-height:none!important;
   -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain!important;
+  overscroll-behavior-x:contain!important;
+  overscroll-behavior-y:none!important;
   border-radius:0 0 18px 18px;
   background:var(--panel)!important;
   position:relative!important;
@@ -1631,7 +1634,11 @@ body{
 }
 
 .tableWrap{
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
   overscroll-behavior:contain!important;
+  overscroll-behavior-x:contain!important;
+  overscroll-behavior-y:none!important;
   -webkit-overflow-scrolling:touch;
 }
 
