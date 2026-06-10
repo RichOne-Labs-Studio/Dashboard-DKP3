@@ -184,6 +184,30 @@ function getRowColor(row, fallback){
   return isValidMapColor(rawColor) ? String(rawColor).trim() : (fallback || '#2563eb');
 }
 
+
+function shouldUseSpreadsheetMapColor(){
+  // Warna khusus dari spreadsheet hanya dipakai saat user memilih
+  // kategori/indikator tematik yang memang punya pewarnaan sendiri.
+  // Untuk tampilan kelurahan default atau filter kecamatan/kelurahan saja,
+  // warna kelurahan tetap mengikuti warna kecamatan induknya.
+  const kategori = document.getElementById('mapKategoriFilter')?.value || activeMapKategori || 'all';
+  const indikator = document.getElementById('mapIndikatorFilter')?.value || activeMapIndikator || 'all';
+
+  const kategoriText = normalizeText(kategori);
+  const indikatorText = normalizeText(indikator);
+
+  if(kategoriText === 'all' && indikatorText === 'all'){
+    return false;
+  }
+
+  return (
+    kategoriText.includes('kerawanan pangan') ||
+    indikatorText.includes('kerawanan pangan') ||
+    indikatorText.includes('kerentanan pangan') ||
+    indikatorText.includes('ketahanan dan kerentanan pangan')
+  );
+}
+
 function normalizeText(value){
   return String(value || '')
     .trim()
@@ -447,8 +471,13 @@ window.toggleMiderPopupDetail = function(detailId, button, count){
 function defaultStyle(feature){
   const nama = getWilayahName(feature);
   const kecamatan = getFeatureKecamatan(feature) || nama;
-  const matched = getBestStyleRow(nama);
-  const fill = getRowColor(matched, getKecamatanColor(kecamatan));
+  const fallbackColor = getKecamatanColor(kecamatan);
+
+  // Pada layer kelurahan, warna spreadsheet hanya dipakai saat filter tematik
+  // Kerawanan Pangan aktif. Jika filter masih umum atau warna = default/kosong,
+  // polygon kelurahan mengikuti warna kecamatan induknya.
+  const matched = shouldUseSpreadsheetMapColor() ? getBestStyleRow(nama) : null;
+  const fill = getRowColor(matched, fallbackColor);
 
   // Layer Kelurahan: jika filter Kecamatan/Kelurahan aktif,
   // wilayah di luar pilihan dibuat redup agar wilayah terpilih lebih menonjol.

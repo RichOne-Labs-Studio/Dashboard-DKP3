@@ -1039,12 +1039,29 @@ function showLayer(layerId){
   });
 
   if(layerId === 'dashboardLayer'){
+    activeDashboardUrusan='all';
+    activeDashboardKategori='all';
+    activeDashboardIndikator='all';
+    const urusanEl=document.getElementById('urusanFilter');
+    const kategoriEl=document.getElementById('kategoriFilter');
+    const searchEl=document.getElementById('searchFilter');
+    if(urusanEl) urusanEl.value='all';
+    updateKategori();
+    if(kategoriEl) kategoriEl.value='all';
+    if(searchEl) searchEl.value='';
     document.querySelector('.sidebar-menu:nth-of-type(1)').classList.add('active');
     populateSidebarMenu('dashboard');
+    render();
   }
 
   if(layerId === 'mapLayer'){
+    activeMapKecamatan='all';
+    activeMapKelurahan='all';
+    activeMapKategori='all';
+    activeMapIndikator='all';
     document.querySelector('.sidebar-menu:nth-of-type(2)').classList.add('active');
+    if(typeof populateMapWilayahFilters==='function'){populateMapWilayahFilters();}
+    if(typeof populateMapFilters==='function'){populateMapFilters();}
     populateSidebarMenu('map');
 
     // Pastikan peta Leaflet muncul normal saat layer Peta baru dibuka.
@@ -1147,33 +1164,7 @@ urusanBox.style.display = mode === 'map' ? 'none' : 'block';
     return;
   }
 
-  let filteredRows = [...rows];
-
-  if(mode === 'map' && activeMapLevel === 'kelurahan'){
-    if(activeMapKecamatan !== 'all'){
-      filteredRows = filteredRows.filter(d => String(d.kecamatan || '') === String(activeMapKecamatan));
-    }
-
-    if(activeMapKelurahan !== 'all'){
-      filteredRows = filteredRows.filter(d => String(d.kelurahan || '') === String(activeMapKelurahan));
-    }
-  }
-
-  if(mode === 'dashboard'){
-    if(activeDashboardUrusan !== 'all'){
-      filteredRows = filteredRows.filter(d => d.urusan === activeDashboardUrusan);
-    }
-
-    if(activeDashboardKategori !== 'all'){
-      filteredRows = filteredRows.filter(d => d.kategori === activeDashboardKategori);
-    }
-  }
-
-  if(mode === 'map'){
-    if(activeMapKategori !== 'all'){
-      filteredRows = filteredRows.filter(d => d.kategori === activeMapKategori);
-    }
-  }
+  // Sidebar selalu menampilkan seluruh opsi.\n  let filteredRows = [...rows];
 
   const activeUrusan = activeDashboardUrusan;
   const activeKategori = mode === 'map' ? activeMapKategori : activeDashboardKategori;
