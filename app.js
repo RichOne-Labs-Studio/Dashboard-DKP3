@@ -1028,7 +1028,7 @@ setTimeout(scheduleSmartKpiIcons, 1000);
   window.addEventListener('resize', handleHeaderAutoHide);
 })();
 
-function showLayer(layerId){
+function showLayer(layerId, shouldReset = true){
 
   document.getElementById('dashboardLayer').style.display = 'none';
   document.getElementById('mapLayer').style.display = 'none';
@@ -1039,26 +1039,30 @@ function showLayer(layerId){
   });
 
   if(layerId === 'dashboardLayer'){
-    activeDashboardUrusan='all';
-    activeDashboardKategori='all';
-    activeDashboardIndikator='all';
-    const urusanEl=document.getElementById('urusanFilter');
-    const kategoriEl=document.getElementById('kategoriFilter');
-    const searchEl=document.getElementById('searchFilter');
-    if(urusanEl) urusanEl.value='all';
-    updateKategori();
-    if(kategoriEl) kategoriEl.value='all';
-    if(searchEl) searchEl.value='';
+    if(shouldReset){
+      activeDashboardUrusan='all';
+      activeDashboardKategori='all';
+      activeDashboardIndikator='all';
+      const urusanEl=document.getElementById('urusanFilter');
+      const kategoriEl=document.getElementById('kategoriFilter');
+      const searchEl=document.getElementById('searchFilter');
+      if(urusanEl) urusanEl.value='all';
+      updateKategori();
+      if(kategoriEl) kategoriEl.value='all';
+      if(searchEl) searchEl.value='';
+    }
     document.querySelector('.sidebar-menu:nth-of-type(1)').classList.add('active');
     populateSidebarMenu('dashboard');
     render();
   }
 
   if(layerId === 'mapLayer'){
-    activeMapKecamatan='all';
-    activeMapKelurahan='all';
-    activeMapKategori='all';
-    activeMapIndikator='all';
+    if(shouldReset){
+      activeMapKecamatan='all';
+      activeMapKelurahan='all';
+      activeMapKategori='all';
+      activeMapIndikator='all';
+    }
     document.querySelector('.sidebar-menu:nth-of-type(2)').classList.add('active');
     if(typeof populateMapWilayahFilters==='function'){populateMapWilayahFilters();}
     if(typeof populateMapFilters==='function'){populateMapFilters();}
@@ -1092,7 +1096,7 @@ selectedKecamatan = kecamatan;
 
 render();
 
-showLayer('dashboardLayer');
+showLayer('dashboardLayer', false);
 
 }
 function resetKecamatanFilter(){
@@ -1164,7 +1168,8 @@ urusanBox.style.display = mode === 'map' ? 'none' : 'block';
     return;
   }
 
-  // Sidebar selalu menampilkan seluruh opsi.\n  let filteredRows = [...rows];
+  // Sidebar selalu menampilkan seluruh opsi.
+  let filteredRows = [...rows];
 
   const activeUrusan = activeDashboardUrusan;
   const activeKategori = mode === 'map' ? activeMapKategori : activeDashboardKategori;
@@ -1210,7 +1215,7 @@ function pilihUrusanSidebar(urusan, mode = 'dashboard'){
 
   /* Layer Peta tidak memakai filter Urusan */
   if(mode === 'map'){
-    showLayer('mapLayer');
+    showLayer('mapLayer', false);
     return;
   }
 
@@ -1230,7 +1235,7 @@ function pilihUrusanSidebar(urusan, mode = 'dashboard'){
     render();
   }
 
-  showLayer('dashboardLayer');
+  showLayer('dashboardLayer', false);
 }
 
 function pilihKategoriSidebar(kategori, mode = 'dashboard'){
@@ -1261,7 +1266,7 @@ function pilihKategoriSidebar(kategori, mode = 'dashboard'){
       refreshMapPopup();
     }
 
-    showLayer('mapLayer');
+    showLayer('mapLayer', false);
     return;
   }
 
@@ -1278,7 +1283,7 @@ function pilihKategoriSidebar(kategori, mode = 'dashboard'){
     render();
   }
 
-  showLayer('dashboardLayer');
+  showLayer('dashboardLayer', false);
 }
 
 function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
@@ -1298,7 +1303,7 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
       refreshMapPopup();
     }
 
-    showLayer('mapLayer');
+    showLayer('mapLayer', false);
     return;
   }
 
@@ -1313,7 +1318,7 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
     render();
   }
 
-  showLayer('dashboardLayer');
+  showLayer('dashboardLayer', false);
 }
 
 /* MOBILE SCROLL OPTIMIZED
