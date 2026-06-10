@@ -505,7 +505,7 @@ function resetFilters(){
   render();
 }
 function downloadPDF(){window.print();}
-const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw-g0VpS35FrnUwtFaOnSpqUguWgTvmuotBOTKNcp1VPlleDXWevMOSkt1p9JM7tWuK/exec';
+const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbyAOiiLJdGAIW91ifMaWHp_dnpq8PS5aaXNoM3FHWWrqOGPLDD8-BYpmYTkmE7LYnuS/exec';
 
 const DASHBOARD_CACHE_KEY = 'miderDashboardCacheV1';
 let isDashboardLoading = false;
@@ -604,6 +604,28 @@ function normalizeDashboardData(rawData){
 // =========================
 // HELPER DATA PETA KECAMATAN / KELURAHAN
 // =========================
+
+function refreshMapAfterFilterChange(){
+  // Sinkronkan dropdown, sidebar, popup, dan warna polygon Leaflet setelah filter berubah.
+  if(typeof populateMapFilters === 'function'){
+    populateMapFilters();
+  }
+
+  populateSidebarMenu('map');
+
+  if(typeof forceRefreshMapStyles === 'function'){
+    forceRefreshMapStyles();
+  }else if(typeof updateMapVisualHighlight === 'function'){
+    updateMapVisualHighlight();
+  }else if(typeof refreshMapPopup === 'function'){
+    refreshMapPopup();
+  }
+
+  if(typeof refreshMiderMapSize === 'function'){
+    refreshMiderMapSize();
+  }
+}
+
 function getActiveMapData(){
   return activeMapLevel === 'kelurahan'
     ? MAP_DATA_KELURAHAN
@@ -657,34 +679,13 @@ function populateMapWilayahFilters(){
     activeMapKelurahan = 'all';
 
     updateMapKelurahanFilter();
-
-    if(typeof populateMapFilters === 'function'){
-      populateMapFilters();
-    }
-
-    populateSidebarMenu('map');
-
-    if(typeof updateMapVisualHighlight === 'function'){
-      updateMapVisualHighlight();
-    }else if(typeof refreshMapPopup === 'function'){
-      refreshMapPopup();
-    }
+    refreshMapAfterFilterChange();
   };
 
   kelurahanFilter.onchange = function(){
     activeMapKelurahan = this.value;
 
-    if(typeof populateMapFilters === 'function'){
-      populateMapFilters();
-    }
-
-    populateSidebarMenu('map');
-
-    if(typeof updateMapVisualHighlight === 'function'){
-      updateMapVisualHighlight();
-    }else if(typeof refreshMapPopup === 'function'){
-      refreshMapPopup();
-    }
+    refreshMapAfterFilterChange();
   };
 }
 
@@ -855,7 +856,7 @@ async function loadDashboardData(options = {}){
       }
     }
 
-    await loadDashboardDataFromJsonp();
+    await loadDashboardDataFromFetch({forceRefresh:true});
 
   }catch(fetchError){
     console.warn('Fetch API gagal, mencoba mode JSONP:', fetchError);
@@ -1040,17 +1041,21 @@ function showLayer(layerId, shouldReset = true){
 
   if(layerId === 'dashboardLayer'){
     if(shouldReset){
-      activeDashboardUrusan='all';
-      activeDashboardKategori='all';
-      activeDashboardIndikator='all';
-      const urusanEl=document.getElementById('urusanFilter');
-      const kategoriEl=document.getElementById('kategoriFilter');
-      const searchEl=document.getElementById('searchFilter');
-      if(urusanEl) urusanEl.value='all';
+      selectedKecamatan = null;
+      activeDashboardUrusan = 'all';
+      activeDashboardKategori = 'all';
+      activeDashboardIndikator = 'all';
+
+      const urusanEl = document.getElementById('urusanFilter');
+      const kategoriEl = document.getElementById('kategoriFilter');
+      const searchEl = document.getElementById('searchFilter');
+
+      if(urusanEl) urusanEl.value = 'all';
       updateKategori();
-      if(kategoriEl) kategoriEl.value='all';
-      if(searchEl) searchEl.value='';
+      if(kategoriEl) kategoriEl.value = 'all';
+      if(searchEl) searchEl.value = '';
     }
+
     document.querySelector('.sidebar-menu:nth-of-type(1)').classList.add('active');
     populateSidebarMenu('dashboard');
     render();
@@ -1058,15 +1063,41 @@ function showLayer(layerId, shouldReset = true){
 
   if(layerId === 'mapLayer'){
     if(shouldReset){
-      activeMapKecamatan='all';
-      activeMapKelurahan='all';
-      activeMapKategori='all';
-      activeMapIndikator='all';
+      activeMapKecamatan = 'all';
+      activeMapKelurahan = 'all';
+      activeMapKategori = 'all';
+      activeMapIndikator = 'all';
+
+      const kecamatanFilter = document.getElementById('mapKecamatanFilter');
+      const kelurahanFilter = document.getElementById('mapKelurahanFilter');
+      const kategoriFilter = document.getElementById('mapKategoriFilter');
+      const indikatorFilter = document.getElementById('mapIndikatorFilter');
+
+      if(kecamatanFilter) kecamatanFilter.value = 'all';
+      if(kelurahanFilter) kelurahanFilter.value = 'all';
+      if(kategoriFilter) kategoriFilter.value = 'all';
+      if(indikatorFilter) indikatorFilter.value = 'all';
     }
+
     document.querySelector('.sidebar-menu:nth-of-type(2)').classList.add('active');
-    if(typeof populateMapWilayahFilters==='function'){populateMapWilayahFilters();}
-    if(typeof populateMapFilters==='function'){populateMapFilters();}
+
+    if(typeof populateMapWilayahFilters === 'function'){
+      populateMapWilayahFilters();
+    }
+
+    if(typeof populateMapFilters === 'function'){
+      populateMapFilters();
+    }
+
     populateSidebarMenu('map');
+
+    if(typeof forceRefreshMapStyles === 'function'){
+      forceRefreshMapStyles();
+    }else if(typeof updateMapVisualHighlight === 'function'){
+      updateMapVisualHighlight();
+    }else if(typeof refreshMapPopup === 'function'){
+      refreshMapPopup();
+    }
 
     // Pastikan peta Leaflet muncul normal saat layer Peta baru dibuka.
     // Masalah umum: peta dibuat saat layer masih display:none sehingga ukuran canvas terbaca 0.
@@ -1147,19 +1178,19 @@ function populateSidebarMenu(mode = 'dashboard'){
   const urusanBox = document.getElementById('sidebarUrusan');
   const kategoriBox = document.getElementById('sidebarKategori');
   const indikatorBox = document.getElementById('sidebarIndikator');
-  
+
   if(!urusanBox || !kategoriBox || !indikatorBox) return;
 
   const rows = mode === 'map' ? (window.MAP_DATA || MAP_DATA || []) : DATA;
 
-  /* Tampilkan Tahun Peta hanya di layer Peta */
+  /* Tampilkan filter Urusan hanya di layer Data */
   const urusanTitle = urusanBox.previousElementSibling;
 
-if(urusanTitle){
-  urusanTitle.style.display = mode === 'map' ? 'none' : 'block';
-}
+  if(urusanTitle){
+    urusanTitle.style.display = mode === 'map' ? 'none' : 'block';
+  }
 
-urusanBox.style.display = mode === 'map' ? 'none' : 'block';
+  urusanBox.style.display = mode === 'map' ? 'none' : 'block';
 
   if(!rows.length){
     urusanBox.innerHTML = '<small>Data belum tersedia</small>';
@@ -1168,12 +1199,47 @@ urusanBox.style.display = mode === 'map' ? 'none' : 'block';
     return;
   }
 
-  // Sidebar selalu menampilkan seluruh opsi.
-  let filteredRows = [...rows];
-
   const activeUrusan = activeDashboardUrusan;
   const activeKategori = mode === 'map' ? activeMapKategori : activeDashboardKategori;
   const activeIndikator = mode === 'map' ? activeMapIndikator : activeDashboardIndikator;
+
+  /*
+    Sidebar mode cascade:
+    - Data: Urusan -> Kategori -> Indikator
+    - Peta: Wilayah -> Kategori -> Indikator
+    Reset tidak memakai tombol, cukup klik menu utama Mider Data / Mider Peta.
+  */
+  let kategoriRows = [...rows];
+  let indikatorRows = [...rows];
+
+  if(mode === 'dashboard'){
+    if(activeDashboardUrusan !== 'all'){
+      kategoriRows = kategoriRows.filter(d => d.urusan === activeDashboardUrusan);
+      indikatorRows = indikatorRows.filter(d => d.urusan === activeDashboardUrusan);
+    }
+
+    if(activeDashboardKategori !== 'all'){
+      indikatorRows = indikatorRows.filter(d => d.kategori === activeDashboardKategori);
+    }
+  }
+
+  if(mode === 'map'){
+    if(activeMapLevel === 'kelurahan'){
+      if(activeMapKecamatan !== 'all'){
+        kategoriRows = kategoriRows.filter(d => String(d.kecamatan || '') === String(activeMapKecamatan));
+        indikatorRows = indikatorRows.filter(d => String(d.kecamatan || '') === String(activeMapKecamatan));
+      }
+
+      if(activeMapKelurahan !== 'all'){
+        kategoriRows = kategoriRows.filter(d => String(d.kelurahan || '') === String(activeMapKelurahan));
+        indikatorRows = indikatorRows.filter(d => String(d.kelurahan || '') === String(activeMapKelurahan));
+      }
+    }
+
+    if(activeMapKategori !== 'all'){
+      indikatorRows = indikatorRows.filter(d => d.kategori === activeMapKategori);
+    }
+  }
 
   if(mode === 'dashboard'){
     urusanBox.innerHTML = [...new Set(rows.map(d => d.urusan).filter(Boolean))]
@@ -1189,7 +1255,7 @@ urusanBox.style.display = mode === 'map' ? 'none' : 'block';
     urusanBox.innerHTML = '';
   }
 
-  kategoriBox.innerHTML = [...new Set(filteredRows.map(d => d.kategori).filter(Boolean))]
+  kategoriBox.innerHTML = [...new Set(kategoriRows.map(d => d.kategori).filter(Boolean))]
     .sort()
     .map(k => `
       <button class="${activeKategori === k ? 'active-filter' : ''}"
@@ -1197,9 +1263,9 @@ urusanBox.style.display = mode === 'map' ? 'none' : 'block';
         ${k}
       </button>
     `)
-    .join('');
+    .join('') || '<small>Tidak ada kategori sesuai filter.</small>';
 
-  indikatorBox.innerHTML = [...new Set(filteredRows.map(d => d.indikator).filter(Boolean))]
+  indikatorBox.innerHTML = [...new Set(indikatorRows.map(d => d.indikator).filter(Boolean))]
     .sort()
     .slice(0,40)
     .map(i => `
@@ -1208,7 +1274,7 @@ urusanBox.style.display = mode === 'map' ? 'none' : 'block';
         ${i}
       </button>
     `)
-    .join('');
+    .join('') || '<small>Tidak ada indikator sesuai filter.</small>';
 }
 
 function pilihUrusanSidebar(urusan, mode = 'dashboard'){
@@ -1262,7 +1328,11 @@ function pilihKategoriSidebar(kategori, mode = 'dashboard'){
       indikatorFilter.value = 'all';
     }
 
-    if(typeof refreshMapPopup === 'function'){
+    if(typeof forceRefreshMapStyles === 'function'){
+      forceRefreshMapStyles();
+    }else if(typeof updateMapVisualHighlight === 'function'){
+      updateMapVisualHighlight();
+    }else if(typeof refreshMapPopup === 'function'){
       refreshMapPopup();
     }
 
@@ -1299,7 +1369,11 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
       filter.value = indikator;
     }
 
-    if(typeof refreshMapPopup === 'function'){
+    if(typeof forceRefreshMapStyles === 'function'){
+      forceRefreshMapStyles();
+    }else if(typeof updateMapVisualHighlight === 'function'){
+      updateMapVisualHighlight();
+    }else if(typeof refreshMapPopup === 'function'){
       refreshMapPopup();
     }
 

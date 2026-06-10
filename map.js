@@ -81,14 +81,14 @@ initMiderMap();
 // Warna dasar kecamatan/wilayah
 function getKecamatanColor(nama){
   const colors = {
-    'Harjamukti': '#2563eb',
-    'Kesambi': '#16a34a',
-    'Lemahwungkuk': '#7c3aed',
-    'Pekalipan': '#f97316',
-    'Kejaksan': '#dc2626'
+    'harjamukti': '#2563eb',
+    'kesambi': '#16a34a',
+    'lemahwungkuk': '#7c3aed',
+    'pekalipan': '#f97316',
+    'kejaksan': '#dc2626'
   };
 
-  return colors[nama] || '#64748b';
+  return colors[normalizeText(nama)] || '#64748b';
 }
 
 function getActiveGeojsonFile(){
@@ -482,11 +482,11 @@ function defaultStyle(feature){
   // Layer Kelurahan: jika filter Kecamatan/Kelurahan aktif,
   // wilayah di luar pilihan dibuat redup agar wilayah terpilih lebih menonjol.
   if(activeMapLevel === 'kelurahan'){
-    const featureKecamatan = String(getFeatureKecamatan(feature) || '').trim().toLowerCase();
-    const namaKelurahan = String(nama || '').trim().toLowerCase();
+    const featureKecamatan = normalizeText(getFeatureKecamatan(feature));
+    const namaKelurahan = normalizeText(nama);
 
-    const kecamatanAktif = String(activeMapKecamatan || 'all').trim().toLowerCase();
-    const kelurahanAktif = String(activeMapKelurahan || 'all').trim().toLowerCase();
+    const kecamatanAktif = normalizeText(activeMapKecamatan || 'all');
+    const kelurahanAktif = normalizeText(activeMapKelurahan || 'all');
 
     const isKecamatanFiltered = kecamatanAktif !== 'all';
     const isKelurahanFiltered = kelurahanAktif !== 'all';
@@ -605,7 +605,7 @@ function populateMapFilters(){
 
   y.onchange = function(){
     refreshMapPopup();
-    if(geoJsonLayer) geoJsonLayer.setStyle(defaultStyle);
+    if(typeof forceRefreshMapStyles === 'function') forceRefreshMapStyles();
   };
 
   k.onchange = function(){
@@ -621,7 +621,7 @@ function populateMapFilters(){
     }
 
     refreshMapPopup();
-    if(geoJsonLayer) geoJsonLayer.setStyle(defaultStyle);
+    if(typeof forceRefreshMapStyles === 'function') forceRefreshMapStyles();
   };
 
   i.onchange = function(){
@@ -632,7 +632,7 @@ function populateMapFilters(){
     }
 
     refreshMapPopup();
-    if(geoJsonLayer) geoJsonLayer.setStyle(defaultStyle);
+    if(typeof forceRefreshMapStyles === 'function') forceRefreshMapStyles();
   };
 }
 
@@ -680,6 +680,33 @@ function updateMapVisualHighlight(){
     refreshMapPopup();
   }
 }
+
+function forceRefreshMapStyles(){
+  if(!geoJsonLayer) return;
+
+  // Paksa Leaflet menghitung ulang warna polygon setelah filter wilayah/kategori/indikator berubah.
+  // Ini mencegah warna kelurahan tertahan pada warna sebelumnya.
+  geoJsonLayer.eachLayer(function(layer){
+    if(layer && layer.feature && typeof layer.setStyle === 'function'){
+      layer.setStyle(defaultStyle(layer.feature));
+    }
+  });
+
+  if(selectedMapLayer && selectedMapLayer.feature){
+    const nama = getWilayahName(selectedMapLayer.feature);
+    const rows = getMatchingRows(nama);
+
+    if(rows.length){
+      selectedMapLayer.setStyle(selectedStyle(selectedMapLayer.feature));
+      selectedMapLayer.setPopupContent(getPopupContent(nama));
+    }else{
+      if(selectedMapLayer.closePopup) selectedMapLayer.closePopup();
+      selectedMapLayer = null;
+    }
+  }
+}
+
+window.forceRefreshMapStyles = forceRefreshMapStyles;
 
 function resetMapDataFilter(){
   const y = document.getElementById('mapYearFilter');
