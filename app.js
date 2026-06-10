@@ -239,11 +239,14 @@ function trendOf(rows, ind, targetYear=null){
   };
 }
 function renderKPIs(rows){
+  const kpiGridEl = document.getElementById('kpiGrid');
+  if(!kpiGridEl) return;
+
   let inds = groupIndicators(rows);
 if(isExecutiveDashboardMode()) inds = inds.filter(isExecutiveIndicator);
   const selectedYear=getSelectedDashboardYear();
 
-  kpiGrid.innerHTML=inds.map(ind=>{
+  kpiGridEl.innerHTML=inds.map(ind=>{
     const latest=latestForIndicator(rows,ind);
     const yoyYear=selectedYear==='all' ? latest?.tahun : selectedYear;
     const tr=trendOf(DATA,ind,yoyYear);
@@ -313,9 +316,12 @@ function renderMiniCharts(rows,inds){
   miniCharts.forEach(c=>c.destroy());
   miniCharts=[];
 
+  const indicatorChartsEl = document.getElementById('indicatorCharts');
+  if(!indicatorChartsEl) return;
+
   const chartYears = getChartYears();
 
-  indicatorCharts.innerHTML=inds.map((ind,i)=>`<div class="card kpi smallChart"><h3>${ind.indikator}</h3><canvas id="mini${i}"></canvas><div class="meta">${ind.urusan} • ${ind.kategori}</div></div>`).join('');
+  indicatorChartsEl.innerHTML=inds.map((ind,i)=>`<div class="card kpi smallChart"><h3>${ind.indikator}</h3><canvas id="mini${i}"></canvas><div class="meta">${ind.urusan} • ${ind.kategori}</div></div>`).join('');
 
   inds.forEach((ind,i)=>{
     const vals=chartYears.map(y=>
@@ -331,7 +337,10 @@ function renderMiniCharts(rows,inds){
     const allowedCharts = ['line','bar','pie','doughnut','radar','polarArea'];
     const type = allowedCharts.includes(ind.chart)? ind.chart: 'line';
 
-    miniCharts.push(new Chart(document.getElementById('mini'+i),{
+    const miniCanvas = document.getElementById('mini'+i);
+    if(!miniCanvas) return;
+
+    miniCharts.push(new Chart(miniCanvas,{
       type,
       data:{
         labels:chartYears,
@@ -402,9 +411,12 @@ function renderInsights(rows){
 }
 
 function renderTable(rows){
+  const matrixTableEl = document.getElementById('matrixTable');
+  if(!matrixTableEl) return;
+
   const sortedRows=[...rows].sort((a,b)=>(a.tahun||0)-(b.tahun||0)||String(a.urusan||'').localeCompare(String(b.urusan||''))||String(a.kategori||'').localeCompare(String(b.kategori||''))||String(a.indikator||'').localeCompare(String(b.indikator||'')));
 
-  matrixTable.innerHTML='<thead><tr><th>Tahun</th><th>Urusan</th><th>Kategori</th><th>Indikator</th><th>Satuan</th><th>Nilai</th><th>YoY</th><th>Keterangan</th></tr></thead><tbody>'+
+  matrixTableEl.innerHTML='<thead><tr><th>Tahun</th><th>Urusan</th><th>Kategori</th><th>Indikator</th><th>Satuan</th><th>Nilai</th><th>YoY</th><th>Keterangan</th></tr></thead><tbody>'+
   sortedRows.map(d=>{
     const ind={kode:d.kode,urusan:d.urusan,kategori:d.kategori};
     const tr=trendOf(DATA,ind,d.tahun);
@@ -604,28 +616,6 @@ function normalizeDashboardData(rawData){
 // =========================
 // HELPER DATA PETA KECAMATAN / KELURAHAN
 // =========================
-
-function refreshMapAfterFilterChange(){
-  // Sinkronkan dropdown, sidebar, popup, dan warna polygon Leaflet setelah filter berubah.
-  if(typeof populateMapFilters === 'function'){
-    populateMapFilters();
-  }
-
-  populateSidebarMenu('map');
-
-  if(typeof forceRefreshMapStyles === 'function'){
-    forceRefreshMapStyles();
-  }else if(typeof updateMapVisualHighlight === 'function'){
-    updateMapVisualHighlight();
-  }else if(typeof refreshMapPopup === 'function'){
-    refreshMapPopup();
-  }
-
-  if(typeof refreshMiderMapSize === 'function'){
-    refreshMiderMapSize();
-  }
-}
-
 function getActiveMapData(){
   return activeMapLevel === 'kelurahan'
     ? MAP_DATA_KELURAHAN
@@ -679,13 +669,34 @@ function populateMapWilayahFilters(){
     activeMapKelurahan = 'all';
 
     updateMapKelurahanFilter();
-    refreshMapAfterFilterChange();
+
+    if(typeof populateMapFilters === 'function'){
+      populateMapFilters();
+    }
+
+    populateSidebarMenu('map');
+
+    if(typeof updateMapVisualHighlight === 'function'){
+      updateMapVisualHighlight();
+    }else if(typeof refreshMapPopup === 'function'){
+      refreshMapPopup();
+    }
   };
 
   kelurahanFilter.onchange = function(){
     activeMapKelurahan = this.value;
 
-    refreshMapAfterFilterChange();
+    if(typeof populateMapFilters === 'function'){
+      populateMapFilters();
+    }
+
+    populateSidebarMenu('map');
+
+    if(typeof updateMapVisualHighlight === 'function'){
+      updateMapVisualHighlight();
+    }else if(typeof refreshMapPopup === 'function'){
+      refreshMapPopup();
+    }
   };
 }
 
@@ -811,33 +822,8 @@ async function loadDashboardDataFromFetch(options = {}){
 function loadDashboardDataFromJsonp(){
   return new Promise((resolve, reject) => {
     const callbackName = '__dkp3DashboardCallback_' + Date.now();
-    let script = null;
-    let settled = false;
-
-    function cleanup(){
-      try{
-        delete window[callbackName];
-      }catch(error){
-        window[callbackName] = undefined;
-      }
-
-      if(script && script.parentNode){
-        script.parentNode.removeChild(script);
-      }
-    }
-
-    const timeoutId = setTimeout(function(){
-      if(settled) return;
-      settled = true;
-      cleanup();
-      reject(new Error('Timeout memuat data melalui JSONP. Periksa koneksi internet dan akses Apps Script.'));
-    }, 20000);
 
     window[callbackName] = function(rawData){
-      if(settled) return;
-      settled = true;
-      clearTimeout(timeoutId);
-
       try{
         saveDashboardCache(rawData);
         startDashboard(rawData);
@@ -845,19 +831,17 @@ function loadDashboardDataFromJsonp(){
       }catch(error){
         reject(error);
       }finally{
-        cleanup();
+        delete window[callbackName];
+        script.remove();
       }
     };
 
-    script = document.createElement('script');
+    const script = document.createElement('script');
     script.src = GOOGLE_SHEETS_API_URL + '?callback=' + callbackName + '&v=' + Date.now();
-    script.async = true;
     script.onerror = function(){
-      if(settled) return;
-      settled = true;
-      clearTimeout(timeoutId);
-      cleanup();
-      reject(new Error('Gagal memuat data melalui JSONP. Pastikan Apps Script mendukung parameter callback dan akses deploy sudah Anyone.'));
+      delete window[callbackName];
+      script.remove();
+      reject(new Error('Gagal memuat data melalui JSONP. Pastikan Apps Script mendukung parameter callback.'));
     };
 
     document.body.appendChild(script);
@@ -879,33 +863,42 @@ async function loadDashboardData(options = {}){
       const cachedData = getDashboardCache();
 
       if(cachedData){
-        try{
-          startDashboard(cachedData);
-        }catch(cacheError){
-          console.warn('Cache dashboard tidak valid, memuat ulang dari API:', cacheError);
-          localStorage.removeItem(DASHBOARD_CACHE_KEY);
-        }
+        startDashboard(cachedData);
       }
     }
 
-    // Apps Script lebih stabil dimuat dengan JSONP pada GitHub Pages/PWA/Android
-    // karena fetch sering gagal akibat redirect/CORS walaupun URL /exec bisa dibuka langsung.
-    await loadDashboardDataFromJsonp();
+    await loadDashboardDataFromFetch({forceRefresh:true});
 
-  }catch(jsonpError){
-    console.warn('JSONP gagal, mencoba mode fetch:', jsonpError);
+  }catch(fetchError){
+    console.warn('Fetch API gagal, mencoba mode JSONP:', fetchError);
 
     try{
-      await loadDashboardDataFromFetch({forceRefresh:true});
-    }catch(fetchError){
-      console.error(fetchError);
+      await loadDashboardDataFromJsonp();
+    }catch(jsonpError){
+      console.error(jsonpError);
 
-      document.body.insertAdjacentHTML(
-        'afterbegin',
-        `<div style="padding:14px 18px;background:#fee2e2;color:#991b1b;font-weight:700">
-          Gagal memuat data dashboard. Periksa URL API, akses Apps Script, dan header Google Sheets.
-        </div>`
-      );
+      try{
+        const fallback = await fetch(GOOGLE_SHEETS_API_URL + '?v=' + Date.now(), {cache: 'reload'});
+        if(!fallback.ok) throw new Error('Fallback API juga gagal');
+        const rawData = await fallback.json();
+        saveDashboardCache(rawData);
+        startDashboard(rawData);
+
+        document.body.insertAdjacentHTML(
+          'afterbegin',
+          `<div style="padding:10px 16px;background:#fef3c7;color:#92400e;font-weight:700">
+            Data Google Sheets sempat lambat dimuat, dashboard memakai hasil pembacaan terakhir dari API.
+          </div>`
+        );
+      }catch(fallbackError){
+        console.error(fallbackError);
+        document.body.insertAdjacentHTML(
+          'afterbegin',
+          `<div style="padding:14px 18px;background:#fee2e2;color:#991b1b;font-weight:700">
+            Gagal memuat data dashboard. Periksa URL API, akses Apps Script, dan header Google Sheets.
+          </div>`
+        );
+      }
     }
   }finally{
     isDashboardLoading = false;
@@ -1109,9 +1102,7 @@ function showLayer(layerId, shouldReset = true){
 
     populateSidebarMenu('map');
 
-    if(typeof forceRefreshMapStyles === 'function'){
-      forceRefreshMapStyles();
-    }else if(typeof updateMapVisualHighlight === 'function'){
+    if(typeof updateMapVisualHighlight === 'function'){
       updateMapVisualHighlight();
     }else if(typeof refreshMapPopup === 'function'){
       refreshMapPopup();
@@ -1314,8 +1305,10 @@ function pilihUrusanSidebar(urusan, mode = 'dashboard'){
   if(filter){
     filter.value = urusan;
     updateKategori();
-    kategoriFilter.value = 'all';
-    searchFilter.value = '';
+    const kategoriFilterEl = document.getElementById('kategoriFilter');
+    const searchFilterEl = document.getElementById('searchFilter');
+    if(kategoriFilterEl) kategoriFilterEl.value = 'all';
+    if(searchFilterEl) searchFilterEl.value = '';
     render();
   }
 
@@ -1346,11 +1339,7 @@ function pilihKategoriSidebar(kategori, mode = 'dashboard'){
       indikatorFilter.value = 'all';
     }
 
-    if(typeof forceRefreshMapStyles === 'function'){
-      forceRefreshMapStyles();
-    }else if(typeof updateMapVisualHighlight === 'function'){
-      updateMapVisualHighlight();
-    }else if(typeof refreshMapPopup === 'function'){
+    if(typeof refreshMapPopup === 'function'){
       refreshMapPopup();
     }
 
@@ -1367,7 +1356,8 @@ function pilihKategoriSidebar(kategori, mode = 'dashboard'){
 
   if(filter){
     filter.value = kategori;
-    searchFilter.value = '';
+    const searchFilterEl = document.getElementById('searchFilter');
+    if(searchFilterEl) searchFilterEl.value = '';
     render();
   }
 
@@ -1387,11 +1377,7 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
       filter.value = indikator;
     }
 
-    if(typeof forceRefreshMapStyles === 'function'){
-      forceRefreshMapStyles();
-    }else if(typeof updateMapVisualHighlight === 'function'){
-      updateMapVisualHighlight();
-    }else if(typeof refreshMapPopup === 'function'){
+    if(typeof refreshMapPopup === 'function'){
       refreshMapPopup();
     }
 
