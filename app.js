@@ -811,8 +811,33 @@ async function loadDashboardDataFromFetch(options = {}){
 function loadDashboardDataFromJsonp(){
   return new Promise((resolve, reject) => {
     const callbackName = '__dkp3DashboardCallback_' + Date.now();
+    let script = null;
+    let settled = false;
+
+    function cleanup(){
+      try{
+        delete window[callbackName];
+      }catch(error){
+        window[callbackName] = undefined;
+      }
+
+      if(script && script.parentNode){
+        script.parentNode.removeChild(script);
+      }
+    }
+
+    const timeoutId = setTimeout(function(){
+      if(settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error('Timeout memuat data melalui JSONP. Periksa koneksi internet dan akses Apps Script.'));
+    }, 20000);
 
     window[callbackName] = function(rawData){
+      if(settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+
       try{
         saveDashboardCache(rawData);
         startDashboard(rawData);
@@ -820,17 +845,19 @@ function loadDashboardDataFromJsonp(){
       }catch(error){
         reject(error);
       }finally{
-        delete window[callbackName];
-        script.remove();
+        cleanup();
       }
     };
 
-    const script = document.createElement('script');
+    script = document.createElement('script');
     script.src = GOOGLE_SHEETS_API_URL + '?callback=' + callbackName + '&v=' + Date.now();
+    script.async = true;
     script.onerror = function(){
-      delete window[callbackName];
-      script.remove();
-      reject(new Error('Gagal memuat data melalui JSONP. Pastikan Apps Script mendukung parameter callback.'));
+      if(settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      cleanup();
+      reject(new Error('Gagal memuat data melalui JSONP. Pastikan Apps Script mendukung parameter callback dan akses deploy sudah Anyone.'));
     };
 
     document.body.appendChild(script);
@@ -852,42 +879,33 @@ async function loadDashboardData(options = {}){
       const cachedData = getDashboardCache();
 
       if(cachedData){
-        startDashboard(cachedData);
+        try{
+          startDashboard(cachedData);
+        }catch(cacheError){
+          console.warn('Cache dashboard tidak valid, memuat ulang dari API:', cacheError);
+          localStorage.removeItem(DASHBOARD_CACHE_KEY);
+        }
       }
     }
 
-    await loadDashboardDataFromFetch({forceRefresh:true});
+    // Apps Script lebih stabil dimuat dengan JSONP pada GitHub Pages/PWA/Android
+    // karena fetch sering gagal akibat redirect/CORS walaupun URL /exec bisa dibuka langsung.
+    await loadDashboardDataFromJsonp();
 
-  }catch(fetchError){
-    console.warn('Fetch API gagal, mencoba mode JSONP:', fetchError);
+  }catch(jsonpError){
+    console.warn('JSONP gagal, mencoba mode fetch:', jsonpError);
 
     try{
-      await loadDashboardDataFromJsonp();
-    }catch(jsonpError){
-      console.error(jsonpError);
+      await loadDashboardDataFromFetch({forceRefresh:true});
+    }catch(fetchError){
+      console.error(fetchError);
 
-      try{
-        const fallback = await fetch(GOOGLE_SHEETS_API_URL + '?v=' + Date.now(), {cache: 'reload'});
-        if(!fallback.ok) throw new Error('Fallback API juga gagal');
-        const rawData = await fallback.json();
-        saveDashboardCache(rawData);
-        startDashboard(rawData);
-
-        document.body.insertAdjacentHTML(
-          'afterbegin',
-          `<div style="padding:10px 16px;background:#fef3c7;color:#92400e;font-weight:700">
-            Data Google Sheets sempat lambat dimuat, dashboard memakai hasil pembacaan terakhir dari API.
-          </div>`
-        );
-      }catch(fallbackError){
-        console.error(fallbackError);
-        document.body.insertAdjacentHTML(
-          'afterbegin',
-          `<div style="padding:14px 18px;background:#fee2e2;color:#991b1b;font-weight:700">
-            Gagal memuat data dashboard. Periksa URL API, akses Apps Script, dan header Google Sheets.
-          </div>`
-        );
-      }
+      document.body.insertAdjacentHTML(
+        'afterbegin',
+        `<div style="padding:14px 18px;background:#fee2e2;color:#991b1b;font-weight:700">
+          Gagal memuat data dashboard. Periksa URL API, akses Apps Script, dan header Google Sheets.
+        </div>`
+      );
     }
   }finally{
     isDashboardLoading = false;
