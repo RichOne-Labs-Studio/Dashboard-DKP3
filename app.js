@@ -855,7 +855,7 @@ async function loadDashboardData(options = {}){
       }
     }
 
-    await loadDashboardDataFromFetch({forceRefresh:true});
+    await loadDashboardDataFromJsonp();
 
   }catch(fetchError){
     console.warn('Fetch API gagal, mencoba mode JSONP:', fetchError);
