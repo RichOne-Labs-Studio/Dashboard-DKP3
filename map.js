@@ -131,21 +131,90 @@ function getWilayahName(feature){
 function getFeatureKecamatan(feature){
   const props = feature.properties || {};
 
-  return String(
+  // Ambil nama kecamatan dari berbagai kemungkinan nama field GeoJSON.
+  // Jika GeoJSON kelurahan tidak punya field kecamatan, coba infer dari MAP_DATA
+  // berdasarkan nama kelurahan di spreadsheet.
+  const directName = String(
     props.district ||
     props.kecamatan ||
     props.KECAMATAN ||
     props.WADMKC ||
+    props.NAMKEC ||
+    props.NAMOBJ_KEC ||
+    props.nama_kec ||
+    props.nama_kecamatan ||
+    props.NAMA_KEC ||
+    props.NAMA_KECAMATAN ||
     ''
   ).trim();
+
+  if(directName){
+    return directName;
+  }
+
+  if(activeMapLevel === 'kelurahan'){
+    const namaKelurahan = getWilayahName(feature);
+    const rowsSource = window.MAP_DATA || MAP_DATA || [];
+    const matched = rowsSource.find(d =>
+      normalizeText(d.kelurahan) === normalizeText(namaKelurahan) &&
+      d.kecamatan
+    );
+
+    return String(matched?.kecamatan || '').trim();
+  }
+
+  return '';
+}
+
+function isValidMapColor(value){
+  const color = String(value || '').trim();
+  if(!color) return false;
+  if(color.toLowerCase() === 'default') return false;
+
+  return (
+    /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(color) ||
+    /^rgba?\(/i.test(color) ||
+    /^hsla?\(/i.test(color) ||
+    /^[a-z]+$/i.test(color)
+  );
 }
 
 function getRowColor(row, fallback){
-  return row?.warna || row?.warna_peta || row?.color || fallback || '#2563eb';
+  const rawColor = row?.warna || row?.warna_peta || row?.color;
+  return isValidMapColor(rawColor) ? String(rawColor).trim() : (fallback || '#2563eb');
 }
 
 function normalizeText(value){
-  return String(value || '').trim().toLowerCase();
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[._-]+/g, ' ');
+}
+
+function getBestStyleRow(namaWilayah){
+  const rows = getMatchingRows(namaWilayah);
+  if(!rows.length) return null;
+
+  // Prioritaskan baris yang punya warna valid dari spreadsheet, bukan nilai "default".
+  // Ini penting saat satu kelurahan punya banyak indikator, misalnya Pelaku Usaha
+  // berwarna default dan Kerawanan Pangan berwarna heatmap.
+  const selectedYear = document.getElementById('mapYearFilter')?.value || 'all';
+
+  const byYear = rows.filter(d =>
+    selectedYear === 'all' || String(d.tahun) === String(selectedYear)
+  );
+
+  const candidates = byYear.length ? byYear : rows;
+
+  const withValidColor = candidates.filter(d =>
+    isValidMapColor(d?.warna || d?.warna_peta || d?.color)
+  );
+
+  const sorted = [...(withValidColor.length ? withValidColor : candidates)]
+    .sort((a,b) => Number(b.tahun || 0) - Number(a.tahun || 0));
+
+  return sorted[0] || null;
 }
 
 function getMatchingRows(namaWilayah){
@@ -378,7 +447,7 @@ window.toggleMiderPopupDetail = function(detailId, button, count){
 function defaultStyle(feature){
   const nama = getWilayahName(feature);
   const kecamatan = getFeatureKecamatan(feature) || nama;
-  const matched = getMatchingRows(nama)[0];
+  const matched = getBestStyleRow(nama);
   const fill = getRowColor(matched, getKecamatanColor(kecamatan));
 
   // Layer Kelurahan: jika filter Kecamatan/Kelurahan aktif,
