@@ -46,6 +46,10 @@ let DATA = [];
 let MAP_DATA = [];
 let MAP_DATA_KECAMATAN = [];
 let MAP_DATA_KELURAHAN = [];
+let CONFIG = {};
+let LEGENDA_DATA = [];
+let TEMA_DATA = [];
+let miderAutoRefreshTimer = null;
 
 let mainChart, barChart;
 let miniCharts = [];
@@ -742,7 +746,21 @@ function setupMapLevelFilter(){
 
 function startDashboard(rawData){
 
- const maintenanceStatus = String(rawData.maintenance || '').trim().toUpperCase();
+ rawData = rawData || {};
+ CONFIG = rawData.config || {};
+ LEGENDA_DATA = rawData.legenda || [];
+ TEMA_DATA = rawData.tema || [];
+ window.CONFIG = CONFIG;
+ window.LEGENDA_DATA = LEGENDA_DATA;
+ window.TEMA_DATA = TEMA_DATA;
+ window.MIDER_GENERATED_AT = rawData.generated_at || '';
+
+ applyMiderThemeFromSpreadsheet(TEMA_DATA);
+ initMiderTheme(CONFIG);
+ renderMiderFooter(CONFIG, rawData.generated_at);
+ scheduleMiderAutoRefresh(CONFIG);
+
+ const maintenanceStatus = String(CONFIG.maintenance || rawData.maintenance || 'OFF').trim().toUpperCase();
 
   if(maintenanceStatus === 'ON'){
     document.body.innerHTML = `
@@ -764,6 +782,8 @@ MAP_DATA_KELURAHAN = rawData.peta_kelurahan || [];
 
 MAP_DATA = getActiveMapData();
 window.MAP_DATA = MAP_DATA;
+window.MAP_DATA_KECAMATAN = MAP_DATA_KECAMATAN;
+window.MAP_DATA_KELURAHAN = MAP_DATA_KELURAHAN;
 
 
 /* Paksa isi ulang filter peta setelah data peta siap */
@@ -892,6 +912,112 @@ async function loadDashboardData(options = {}){
     isDashboardLoading = false;
     if(showLoading) setRefreshButtonLoading(false);
     setupManualRefreshButton();
+  }
+}
+
+
+
+// =========================
+// MIDER 2.0: CONFIG, THEME, FOOTER
+// =========================
+function normalizeThemeName(value){
+  const text = String(value || '').trim().toLowerCase();
+  if(text === 'nusa malam' || text === 'gelap') return 'dark';
+  if(text === 'nusa hijau' || text === 'terang') return 'light';
+  return text === 'dark' ? 'dark' : 'light';
+}
+
+function cssVarName(name){
+  const key = String(name || '').trim().toLowerCase().replace(/\s+/g,'_');
+  const map = {
+    bg:'--bg', background:'--bg', panel:'--panel', panel2:'--panel2', surface:'--surface', sidebar:'--surface',
+    text:'--text', muted:'--muted', line:'--line', primary:'--blue', primary2:'--blue2', blue:'--blue', blue2:'--blue2',
+    green:'--green', success:'--green', red:'--red', danger:'--red', orange:'--orange', warning:'--orange',
+    purple:'--purple', teal:'--teal'
+  };
+  return map[key] || ('--' + key.replace(/_/g,'-'));
+}
+
+function applyMiderThemeFromSpreadsheet(rows){
+  if(!Array.isArray(rows) || !rows.length) return;
+
+  ['light','dark'].forEach(themeName => {
+    const selector = themeName === 'light' ? ':root' : '[data-theme="dark"]';
+    let style = document.getElementById('mider-theme-spreadsheet-' + themeName);
+    if(!style){
+      style = document.createElement('style');
+      style.id = 'mider-theme-spreadsheet-' + themeName;
+      document.head.appendChild(style);
+    }
+
+    const vars = rows
+      .filter(row => normalizeThemeName(row.tema) === themeName)
+      .map(row => `  ${cssVarName(row.variabel)}: ${row.nilai};`)
+      .join('
+');
+
+    style.textContent = vars ? `${selector}{
+${vars}
+}` : '';
+  });
+}
+
+function initMiderTheme(config = {}){
+  const btn = document.getElementById('themeToggle');
+  const saved = localStorage.getItem('mider-theme');
+  const defaultTheme = normalizeThemeName(config.default_theme || 'light');
+  const active = normalizeThemeName(saved || defaultTheme);
+
+  document.documentElement.setAttribute('data-theme', active);
+
+  if(btn){
+    btn.textContent = active === 'dark' ? '☀️' : '🌙';
+    btn.title = active === 'dark' ? 'Ganti ke tema terang' : 'Ganti ke tema gelap';
+
+    if(btn.dataset.miderThemeBound !== '1'){
+      btn.addEventListener('click', function(){
+        const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('mider-theme', next);
+        btn.textContent = next === 'dark' ? '☀️' : '🌙';
+        btn.title = next === 'dark' ? 'Ganti ke tema terang' : 'Ganti ke tema gelap';
+
+        if(typeof renderDynamicMapLegend === 'function') renderDynamicMapLegend();
+      });
+      btn.dataset.miderThemeBound = '1';
+    }
+  }
+}
+
+function renderMiderFooter(config = {}, generatedAt = ''){
+  const versionEl = document.getElementById('footerVersion');
+  const updateEl = document.getElementById('footerUpdate');
+  const agencyEl = document.getElementById('footerAgency');
+  const statusEl = document.getElementById('footerStatus');
+
+  if(versionEl) versionEl.textContent = 'MIDER v' + (config.dashboard_version || '2.0.0');
+  if(updateEl) updateEl.textContent = generatedAt ? ('Update data: ' + generatedAt + ' WIB') : 'Update data: -';
+  if(agencyEl) agencyEl.textContent = config.dashboard_footer || 'DKP3 Kota Cirebon';
+  if(statusEl){
+    const maintenance = String(config.maintenance || 'OFF').trim().toUpperCase();
+    statusEl.textContent = maintenance === 'ON' ? '🟠 Maintenance' : '🟢 Data Aktif';
+  }
+}
+
+function scheduleMiderAutoRefresh(config = {}){
+  const minutes = Number(config.auto_refresh_minutes || 0);
+  if(miderAutoRefreshTimer){
+    clearInterval(miderAutoRefreshTimer);
+    miderAutoRefreshTimer = null;
+  }
+
+  if(Number.isFinite(minutes) && minutes > 0){
+    miderAutoRefreshTimer = setInterval(function(){
+      if(!isDashboardLoading){
+        loadDashboardData({forceRefresh:true, useCache:false, showLoading:false});
+      }
+    }, minutes * 60000);
   }
 }
 

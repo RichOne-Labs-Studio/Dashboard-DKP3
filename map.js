@@ -918,3 +918,98 @@ document.addEventListener('DOMContentLoaded', function(){
     attributeFilter: ['style', 'class']
   });
 });
+
+
+// =====================================================
+// MIDER 2.0 - LEGENDA DINAMIS KERAWANAN PANGAN
+// Warna legenda dibaca dari spreadsheet: data_legenda.
+// Warna polygon kerawanan pangan tetap memakai getRowColor() dan kolom warna spreadsheet.
+// =====================================================
+function isKerawananPanganMapActive(){
+  const kategori = document.getElementById('mapKategoriFilter')?.value || activeMapKategori || '';
+  const indikator = document.getElementById('mapIndikatorFilter')?.value || activeMapIndikator || '';
+
+  return activeMapLevel === 'kelurahan' && (
+    normalizeText(kategori).includes('kerawanan pangan') ||
+    normalizeText(indikator).includes('kerawanan pangan') ||
+    normalizeText(indikator).includes('kerentanan pangan') ||
+    normalizeText(indikator).includes('ketahanan dan kerentanan pangan')
+  );
+}
+
+function getLegendRowsForKerawanan(){
+  const rows = Array.isArray(window.LEGENDA_DATA) ? window.LEGENDA_DATA : [];
+  const filtered = rows
+    .filter(row => normalizeText(row.kategori).includes('kerawanan pangan'))
+    .sort((a,b) => Number(a.urutan || 0) - Number(b.urutan || 0));
+
+  if(filtered.length) return filtered;
+
+  return [
+    {label:'Sangat Aman', warna:'#A7FFA7', urutan:1},
+    {label:'Aman', warna:'#19FF19', urutan:2},
+    {label:'Rentan', warna:'#FFD966', urutan:3},
+    {label:'Rawan', warna:'#FF9900', urutan:4},
+    {label:'Sangat Rawan', warna:'#FF0000', urutan:5}
+  ];
+}
+
+function renderDynamicMapLegend(){
+  const legend = document.getElementById('mapLegend');
+  if(!legend) return;
+
+  if(!isKerawananPanganMapActive()){
+    legend.style.display = 'none';
+    legend.innerHTML = '';
+    return;
+  }
+
+  const rows = getLegendRowsForKerawanan();
+  legend.innerHTML = `
+    <div class="map-legend-title">Kerawanan Pangan</div>
+    ${rows.map(row => `
+      <div class="map-legend-item">
+        <span class="map-legend-color" style="background:${escapePopupHtml(row.warna || row.color || '#64748b')}"></span>
+        <span>${escapePopupHtml(row.label || row.status || '-')}</span>
+      </div>
+    `).join('')}
+  `;
+  legend.style.display = 'block';
+}
+
+window.renderDynamicMapLegend = renderDynamicMapLegend;
+
+(function attachMiderLegendHooks(){
+  if(typeof populateMapFilters === 'function' && populateMapFilters.__miderLegendWrapped !== true){
+    const originalPopulateMapFilters = populateMapFilters;
+    populateMapFilters = function(){
+      const result = originalPopulateMapFilters.apply(this, arguments);
+      setTimeout(renderDynamicMapLegend, 0);
+      return result;
+    };
+    populateMapFilters.__miderLegendWrapped = true;
+  }
+
+  if(typeof forceRefreshMapStyles === 'function' && forceRefreshMapStyles.__miderLegendWrapped !== true){
+    const originalForceRefreshMapStyles = forceRefreshMapStyles;
+    forceRefreshMapStyles = function(){
+      const result = originalForceRefreshMapStyles.apply(this, arguments);
+      renderDynamicMapLegend();
+      return result;
+    };
+    forceRefreshMapStyles.__miderLegendWrapped = true;
+    window.forceRefreshMapStyles = forceRefreshMapStyles;
+  }
+
+  ['mapLevelFilter','mapKategoriFilter','mapIndikatorFilter','mapKecamatanFilter','mapKelurahanFilter','mapYearFilter'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el && el.dataset.miderLegendBound !== '1'){
+      el.addEventListener('change', function(){
+        setTimeout(renderDynamicMapLegend, 0);
+      });
+      el.dataset.miderLegendBound = '1';
+    }
+  });
+
+  setTimeout(renderDynamicMapLegend, 300);
+})();
