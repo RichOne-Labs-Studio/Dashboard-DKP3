@@ -1,28 +1,45 @@
-MIDER 2.0 - FULL SPREADSHEET THEME CONTROL
+AUDIT APP.JS MIDER 2.0
 
-File yang diganti:
-- index.html
-- style.css
-- app.js
-- map.js
+Status file awal:
+- File sudah mengambil API Google Sheets.
+- File sudah membaca config, legenda, tema mentah, KPI, peta kecamatan, dan peta kelurahan.
+- Namun pembacaan tema masih dominan memakai rawData.tema, belum optimal memakai API baru rawData.theme / rawData.warna_tema.
+- Masih ada blok hardcode STELLAR NUSA HIJAU THEME HARDENING yang bisa menimpa warna dari spreadsheet.
 
-Tambahan:
-- data_warna_tema_template.csv untuk ditempel ke sheet data_warna_tema.
+Perbaikan yang dilakukan:
+1. Menambahkan dukungan API baru:
+   - rawData.theme
+   - rawData.warna_tema
+   - theme.dark
+   - theme.light
 
-Tujuan:
-- Seluruh warna tampilan dashboard dikendalikan dari Spreadsheet.
-- Sidebar mengikuti gaya Stellar: navy gelap, teks abu, highlight hijau tipis, garis kiri aktif.
-- Warna polygon Kerawanan Pangan tetap mengikuti data_peta_kelurahan, tidak diubah oleh tema.
+2. Menambahkan variabel global:
+   - MIDER_THEME_OBJECT
+   - window.MIDER_THEME_OBJECT
+   - window.MIDER_RAW_DATA
 
-Cara pakai:
-1. Backup 4 file lama.
-2. Replace 4 file dari ZIP ini ke GitHub Pages.
-3. Copy isi data_warna_tema_template.csv ke sheet data_warna_tema.
-4. Commit/push.
-5. Buka dashboard dan tekan Ctrl + Shift + R.
+3. Menambahkan fungsi:
+   - applyMiderThemeObject(themeObject)
+   - applyMiderThemeFromApi(rawData)
 
-Jika masih tampil warna lama, jalankan Console:
-localStorage.removeItem('mider-theme');
-localStorage.removeItem('miderTheme');
-localStorage.removeItem('miderDashboardCacheV1');
-location.reload();
+4. Mengubah startDashboard() agar:
+   - menyimpan rawData terbaru
+   - membaca theme.dark dan theme.light
+   - tetap kompatibel dengan data lama rawData.tema
+
+5. Mengubah tombol dark/light agar:
+   - menerapkan ulang tema dari API baru
+   - tidak hanya dari tabel tema mentah lama
+
+6. Menghapus blok hardcode:
+   - MIDER 2.0 - STELLAR NUSA HIJAU THEME HARDENING
+
+7. Mengubah efek warna kartu/grafik agar:
+   - memakai getMiderChartColors()
+   - mengikuti variabel chart dari CSS/spreadsheet
+
+Catatan pemakaian:
+- Rename app_audit_theme_api.js menjadi app.js.
+- Ganti file app.js lama di folder dashboard.
+- Pastikan Apps Script sudah deploy ulang dan menghasilkan theme.dark serta theme.light.
+- Pastikan style.css memakai variabel CSS dari spreadsheet.

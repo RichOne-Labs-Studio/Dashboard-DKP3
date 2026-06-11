@@ -56,6 +56,7 @@ let MAP_DATA_KELURAHAN = [];
 let CONFIG = {};
 let LEGENDA_DATA = [];
 let TEMA_DATA = [];
+let MIDER_THEME_OBJECT = {};
 let miderAutoRefreshTimer = null;
 
 let mainChart, barChart;
@@ -753,26 +754,29 @@ function setupMapLevelFilter(){
 
 function startDashboard(rawData){
   rawData = rawData || {};
+  window.MIDER_RAW_DATA = rawData;
 
   CONFIG = rawData.config || {};
   LEGENDA_DATA = rawData.legenda || [];
   TEMA_DATA = rawData.tema || [];
+  MIDER_THEME_OBJECT = rawData.theme || rawData.warna_tema || {};
 
   window.CONFIG = CONFIG;
   window.LEGENDA_DATA = LEGENDA_DATA;
   window.TEMA_DATA = TEMA_DATA;
+  window.MIDER_THEME_OBJECT = MIDER_THEME_OBJECT;
   window.MIDER_GENERATED_AT = rawData.generated_at || '';
 
-  applyMiderThemeFromSpreadsheet(TEMA_DATA);
   initMiderTheme(CONFIG);
+  applyMiderThemeFromApi(rawData);
 
   setTimeout(function(){
     const currentTheme =
       document.documentElement.getAttribute('data-theme') ||
-      normalizeThemeName(CONFIG.default_theme || 'light');
+      normalizeThemeName(CONFIG.default_theme || 'dark');
 
     document.documentElement.setAttribute('data-theme', currentTheme);
-    applyMiderThemeFromSpreadsheet(window.TEMA_DATA || TEMA_DATA || []);
+    applyMiderThemeFromApi(window.MIDER_RAW_DATA || rawData);
   }, 100);
   renderMiderFooter(CONFIG, rawData.generated_at);
   scheduleMiderAutoRefresh(CONFIG);
@@ -951,11 +955,11 @@ function cssVarName(name){
     text:'--text', muted:'--muted', line:'--line',
     radius:'--radius', shadow:'--shadow', soft_shadow:'--softShadow',
 
-    primary:'--blue', primary2:'--blue2', accent:'--blue',
+    primary:'--primary', primary2:'--primary2', accent:'--primary',
     blue:'--blue', blue2:'--blue2',
-    success:'--green', green:'--green',
-    danger:'--red', red:'--red',
-    warning:'--orange', orange:'--orange',
+    success:'--success', green:'--green',
+    danger:'--danger', red:'--red',
+    warning:'--warning', orange:'--orange',
     purple:'--purple', violet:'--purple', teal:'--teal',
 
     sidebar_bg:'--sidebar-bg',
@@ -1046,6 +1050,66 @@ function applyMiderThemeFromSpreadsheet(rows){
   }
 }
 
+
+function applyMiderThemeObject(themeObject){
+  if(!themeObject || typeof themeObject !== 'object'){
+    return;
+  }
+
+  ['light','dark'].forEach(function(themeName){
+    const theme = themeObject[themeName];
+
+    if(!theme || typeof theme !== 'object'){
+      return;
+    }
+
+    const selector = themeName === 'light'
+      ? ':root, [data-theme="light"]'
+      : '[data-theme="dark"]';
+
+    let style = document.getElementById('mider-theme-object-' + themeName);
+
+    if(!style){
+      style = document.createElement('style');
+      style.id = 'mider-theme-object-' + themeName;
+      document.head.appendChild(style);
+    }
+
+    const vars = Object.keys(theme)
+      .filter(function(key){ return theme[key] !== null && theme[key] !== undefined && String(theme[key]).trim() !== ''; })
+      .map(function(key){ return '  ' + cssVarName(key) + ': ' + theme[key] + ';'; })
+      .join('\n');
+
+    style.textContent = vars ? selector + '{\n' + vars + '\n}' : '';
+  });
+
+  const activeTheme =
+    document.documentElement.getAttribute('data-theme') ||
+    normalizeThemeName((window.CONFIG || {}).default_theme || 'dark');
+
+  document.documentElement.setAttribute('data-theme', activeTheme);
+
+  document.dispatchEvent(new CustomEvent('mider-theme-updated', {
+    detail: { theme: activeTheme }
+  }));
+
+  if(typeof refreshMiderVisualThemeAfterSpreadsheet === 'function'){
+    refreshMiderVisualThemeAfterSpreadsheet();
+  }
+}
+
+function applyMiderThemeFromApi(rawData){
+  rawData = rawData || {};
+  const themeObject = rawData.theme || rawData.warna_tema || window.MIDER_THEME_OBJECT || {};
+
+  if(themeObject && Object.keys(themeObject).length){
+    applyMiderThemeObject(themeObject);
+    return;
+  }
+
+  applyMiderThemeFromSpreadsheet(rawData.tema || window.TEMA_DATA || TEMA_DATA || []);
+}
+
 function refreshMiderVisualThemeAfterSpreadsheet(){
   const styles = getComputedStyle(document.documentElement);
   if(typeof Chart !== 'undefined'){
@@ -1076,7 +1140,7 @@ function initMiderTheme(config = {}){
         document.documentElement.setAttribute('data-theme', next);
         localStorage.setItem('mider-theme', next);
 
-        applyMiderThemeFromSpreadsheet(window.TEMA_DATA || TEMA_DATA || []);
+        applyMiderThemeFromApi(window.MIDER_RAW_DATA || {});
         btn.textContent = next === 'dark' ? '☀️' : '🌙';
         btn.title = next === 'dark' ? 'Ganti ke tema terang' : 'Ganti ke tema gelap';
 
@@ -1125,12 +1189,13 @@ loadDashboardData({forceRefresh:true, useCache:false});
 
 
 setTimeout(()=>{
+  const chartColors = getMiderChartColors();
   document.querySelectorAll('#indicatorCharts .kpi').forEach((el,i)=>{
-    const color = DASH_CHART_COLORS[i % DASH_CHART_COLORS.length];
+    const color = chartColors[i % chartColors.length];
     el.style.borderTop = `4px solid ${color}`;
   });
   document.querySelectorAll('#kpiGrid .kpi').forEach((el,i)=>{
-    const color = DASH_CHART_COLORS[i % DASH_CHART_COLORS.length];
+    const color = chartColors[i % chartColors.length];
     el.style.boxShadow = `0 6px 18px ${color}18`;
   });
 },500);
@@ -1620,61 +1685,3 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
 
 // ==== END MIDER 2.0 THEME FIX: legacy light-mode removed, spreadsheet theme active ====
 
-
-// =====================================================
-// MIDER 2.0 - STELLAR NUSA HIJAU THEME HARDENING
-// =====================================================
-(function(){
-  function ensureStellarFallbackStyle(){
-    if(document.getElementById('mider-stellar-fallback-theme')) return;
-
-    const style = document.createElement('style');
-    style.id = 'mider-stellar-fallback-theme';
-    style.textContent = `
-      :root,[data-theme="dark"]{
-        --bg:#0F111A;
-        --surface:#181824;
-        --panel:#1C1D2B;
-        --panel2:#242638;
-        --text:#F8FAFC;
-        --muted:#CBD5E1;
-        --line:#334155;
-        --blue:#38CE3C;
-        --blue2:#2EB532;
-        --green:#38CE3C;
-        --red:#FF4D6B;
-        --orange:#FFDE73;
-        --purple:#8E32E9;
-        --teal:#14B8A6;
-        --shadow:0 18px 42px rgba(0,0,0,.34);
-        --softShadow:0 10px 28px rgba(0,0,0,.24);
-      }
-      [data-theme="light"]{
-        --bg:#F5F7FA;
-        --surface:#FFFFFF;
-        --panel:#FFFFFF;
-        --panel2:#F8FAFC;
-        --text:#1F2937;
-        --muted:#64748B;
-        --line:#E2E8F0;
-        --blue:#38CE3C;
-        --blue2:#2EB532;
-        --green:#38CE3C;
-        --red:#FF4D6B;
-        --orange:#FFDE73;
-        --purple:#8E32E9;
-        --teal:#14B8A6;
-        --shadow:0 14px 34px rgba(15,17,26,.12);
-        --softShadow:0 8px 22px rgba(15,17,26,.09);
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  document.addEventListener('DOMContentLoaded', ensureStellarFallbackStyle);
-  document.addEventListener('mider-theme-updated', function(){
-    if(typeof renderDynamicMapLegend === 'function'){
-      renderDynamicMapLegend();
-    }
-  });
-})();
