@@ -105,9 +105,21 @@ function getWilayahName(feature){
       props.village ||
       props.kelurahan ||
       props.KELURAHAN ||
+      props.KEL ||
+      props.DESA ||
+      props.desa ||
+      props.KEL_DESA ||
+      props.KELURAHAN_DESA ||
+      props.WADMKD ||
+      props.NAMOBJ ||
+      props.NAMOBJ_DESA ||
+      props.NAMOBJ_KEL ||
+      props.nama_kelurahan ||
+      props.NAMA_KELURAHAN ||
+      props.nama_desa ||
+      props.NAMA_DESA ||
       props.nama ||
       props.NAMA ||
-      props.NAMOBJ ||
       props.name ||
       props.NAME ||
       ''
@@ -119,6 +131,12 @@ function getWilayahName(feature){
     props.kecamatan ||
     props.KECAMATAN ||
     props.WADMKC ||
+    props.NAMKEC ||
+    props.NAMOBJ_KEC ||
+    props.nama_kec ||
+    props.nama_kecamatan ||
+    props.NAMA_KEC ||
+    props.NAMA_KECAMATAN ||
     props.nama ||
     props.NAMA ||
     props.NAMOBJ ||
@@ -141,6 +159,9 @@ function getFeatureKecamatan(feature){
     props.WADMKC ||
     props.NAMKEC ||
     props.NAMOBJ_KEC ||
+    props.WADMKC_1 ||
+    props.KEC ||
+    props.kec ||
     props.nama_kec ||
     props.nama_kecamatan ||
     props.NAMA_KEC ||
@@ -156,7 +177,7 @@ function getFeatureKecamatan(feature){
     const namaKelurahan = getWilayahName(feature);
     const rowsSource = window.MAP_DATA || MAP_DATA || [];
     const matched = rowsSource.find(d =>
-      normalizeText(d.kelurahan) === normalizeText(namaKelurahan) &&
+      mapTextMatches(d.kelurahan, namaKelurahan) &&
       d.kecamatan
     );
 
@@ -212,8 +233,23 @@ function normalizeText(value){
   return String(value || '')
     .trim()
     .toLowerCase()
+    .replace(/[._-]+/g, ' ')
+    .replace(/\b(kelurahan|kel\.?|desa|kec\.?|kecamatan)\b/g, '')
+    .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, ' ')
-    .replace(/[._-]+/g, ' ');
+    .trim();
+}
+
+function mapTextMatches(a, b){
+  const na = normalizeText(a);
+  const nb = normalizeText(b);
+
+  if(!na || !nb) return false;
+  if(na === nb) return true;
+
+  // Toleransi variasi nama GeoJSON/spreadsheet:
+  // "Kel. Larangan", "Kelurahan Larangan", dan "Larangan" dianggap sama.
+  return na.includes(nb) || nb.includes(na);
 }
 
 function getBestStyleRow(namaWilayah){
@@ -245,8 +281,8 @@ function getMatchingRows(namaWilayah){
   const rowsSource = window.MAP_DATA || MAP_DATA || [];
 
   const tahun = document.getElementById('mapYearFilter')?.value || 'all';
-  const kategori = document.getElementById('mapKategoriFilter')?.value || 'all';
-  const indikator = document.getElementById('mapIndikatorFilter')?.value || 'all';
+  const kategori = document.getElementById('mapKategoriFilter')?.value || activeMapKategori || 'all';
+  const indikator = document.getElementById('mapIndikatorFilter')?.value || activeMapIndikator || 'all';
 
   let rows = rowsSource.filter(d =>
     (tahun === 'all' || String(d.tahun) === String(tahun)) &&
@@ -256,20 +292,17 @@ function getMatchingRows(namaWilayah){
 
   if(activeMapLevel === 'kelurahan'){
     rows = rows.filter(d => {
-      const kelurahanMatch = normalizeText(d.kelurahan) === normalizeText(namaWilayah);
-      const kecamatanMatch = activeMapKecamatan === 'all' || normalizeText(d.kecamatan) === normalizeText(activeMapKecamatan);
-      const activeKelurahanMatch = activeMapKelurahan === 'all' || normalizeText(d.kelurahan) === normalizeText(activeMapKelurahan);
+      const kelurahanMatch = mapTextMatches(d.kelurahan, namaWilayah);
+      const kecamatanMatch = activeMapKecamatan === 'all' || mapTextMatches(d.kecamatan, activeMapKecamatan);
+      const activeKelurahanMatch = activeMapKelurahan === 'all' || mapTextMatches(d.kelurahan, activeMapKelurahan);
       return kelurahanMatch && kecamatanMatch && activeKelurahanMatch;
     });
   }else{
-    rows = rows.filter(d =>
-      normalizeText(d.kecamatan) === normalizeText(namaWilayah)
-    );
+    rows = rows.filter(d => mapTextMatches(d.kecamatan, namaWilayah));
   }
 
   return rows;
 }
-
 function escapePopupHtml(value){
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -482,22 +515,22 @@ function defaultStyle(feature){
   // Layer Kelurahan: jika filter Kecamatan/Kelurahan aktif,
   // wilayah di luar pilihan dibuat redup agar wilayah terpilih lebih menonjol.
   if(activeMapLevel === 'kelurahan'){
-    const featureKecamatan = normalizeText(getFeatureKecamatan(feature));
-    const namaKelurahan = normalizeText(nama);
+    const featureKecamatan = getFeatureKecamatan(feature);
+    const namaKelurahan = nama;
 
-    const kecamatanAktif = normalizeText(activeMapKecamatan || 'all');
-    const kelurahanAktif = normalizeText(activeMapKelurahan || 'all');
+    const kecamatanAktif = activeMapKecamatan || 'all';
+    const kelurahanAktif = activeMapKelurahan || 'all';
 
-    const isKecamatanFiltered = kecamatanAktif !== 'all';
-    const isKelurahanFiltered = kelurahanAktif !== 'all';
+    const isKecamatanFiltered = normalizeText(kecamatanAktif) !== 'all';
+    const isKelurahanFiltered = normalizeText(kelurahanAktif) !== 'all';
 
     const matchKecamatan =
       !isKecamatanFiltered ||
-      featureKecamatan === kecamatanAktif;
+      mapTextMatches(featureKecamatan, kecamatanAktif);
 
     const matchKelurahan =
       !isKelurahanFiltered ||
-      namaKelurahan === kelurahanAktif;
+      mapTextMatches(namaKelurahan, kelurahanAktif);
 
     const isActiveArea = matchKecamatan && matchKelurahan;
 
@@ -556,11 +589,11 @@ function getFilteredRowsForMapControls(){
 
   if(activeMapLevel === 'kelurahan'){
     if(activeMapKecamatan !== 'all'){
-      rows = rows.filter(d => normalizeText(d.kecamatan) === normalizeText(activeMapKecamatan));
+      rows = rows.filter(d => mapTextMatches(d.kecamatan, activeMapKecamatan));
     }
 
     if(activeMapKelurahan !== 'all'){
-      rows = rows.filter(d => normalizeText(d.kelurahan) === normalizeText(activeMapKelurahan));
+      rows = rows.filter(d => mapTextMatches(d.kelurahan, activeMapKelurahan));
     }
   }
 
