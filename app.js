@@ -757,6 +757,15 @@ function startDashboard(rawData){
 
   applyMiderThemeFromSpreadsheet(TEMA_DATA);
   initMiderTheme(CONFIG);
+
+  setTimeout(function(){
+    const currentTheme =
+      document.documentElement.getAttribute('data-theme') ||
+      normalizeThemeName(CONFIG.default_theme || 'light');
+
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    applyMiderThemeFromSpreadsheet(window.TEMA_DATA || TEMA_DATA || []);
+  }, 100);
   renderMiderFooter(CONFIG, rawData.generated_at);
   scheduleMiderAutoRefresh(CONFIG);
 
@@ -936,11 +945,17 @@ function cssVarName(name){
 }
 
 function applyMiderThemeFromSpreadsheet(rows){
-  if(!Array.isArray(rows) || !rows.length) return;
+  if(!Array.isArray(rows) || !rows.length){
+    return;
+  }
 
   ['light','dark'].forEach(themeName => {
-    const selector = themeName === 'light' ? ':root, [data-theme="light"]' : '[data-theme="dark"]';
+    const selector = themeName === 'light'
+      ? ':root, [data-theme="light"]'
+      : '[data-theme="dark"]';
+
     let style = document.getElementById('mider-theme-spreadsheet-' + themeName);
+
     if(!style){
       style = document.createElement('style');
       style.id = 'mider-theme-spreadsheet-' + themeName;
@@ -951,14 +966,30 @@ function applyMiderThemeFromSpreadsheet(rows){
       .filter(row => normalizeThemeName(row.tema) === themeName)
       .filter(row => row.variabel && row.nilai)
       .map(row => '  ' + cssVarName(row.variabel) + ': ' + row.nilai + ';')
-      .join('\n');
+      .join('
+');
 
-    style.textContent = vars ? selector + '{\n' + vars + '\n}' : '';
+    style.textContent = vars ? selector + '{
+' + vars + '
+}' : '';
   });
+
+  const activeTheme =
+    document.documentElement.getAttribute('data-theme') ||
+    normalizeThemeName((window.CONFIG || {}).default_theme || 'light');
+
+  document.documentElement.setAttribute('data-theme', activeTheme);
+
+  document.dispatchEvent(new CustomEvent('mider-theme-updated', {
+    detail: { theme: activeTheme }
+  }));
 }
 
 function initMiderTheme(config = {}){
   const btn = document.getElementById('themeToggle');
+  // Hapus kunci tema lama agar tidak bentrok dengan sistem MIDER 2.0.
+  localStorage.removeItem('miderTheme');
+
   const saved = localStorage.getItem('mider-theme');
   const defaultTheme = normalizeThemeName(config.default_theme || 'light');
   const active = normalizeThemeName(saved || defaultTheme);
@@ -975,6 +1006,8 @@ function initMiderTheme(config = {}){
         const next = current === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', next);
         localStorage.setItem('mider-theme', next);
+
+        applyMiderThemeFromSpreadsheet(window.TEMA_DATA || TEMA_DATA || []);
         btn.textContent = next === 'dark' ? '☀️' : '🌙';
         btn.title = next === 'dark' ? 'Ganti ke tema terang' : 'Ganti ke tema gelap';
 
@@ -1514,33 +1547,6 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
    Data hanya diperbarui saat halaman dibuka ulang atau tombol Refresh Data ditekan.
 */
 
-/* THEME TOGGLE LIGHT / DARK */
 
-(function(){
 
-  const btn = document.getElementById('themeToggle');
-
-  if(!btn) return;
-
-  const savedTheme = localStorage.getItem('miderTheme') || 'dark';
-
-  if(savedTheme === 'light'){
-    document.body.classList.add('light-mode');
-    btn.textContent = '☀️';
-  }else{
-    btn.textContent = '🌙';
-  }
-
-  btn.addEventListener('click', function(){
-
-    document.body.classList.toggle('light-mode');
-
-    const isLight = document.body.classList.contains('light-mode');
-
-    btn.textContent = isLight ? '☀️' : '🌙';
-
-    localStorage.setItem('miderTheme', isLight ? 'light' : 'dark');
-
-  });
-
-})();
+// ==== END MIDER 2.0 THEME FIX: legacy light-mode removed, spreadsheet theme active ====
