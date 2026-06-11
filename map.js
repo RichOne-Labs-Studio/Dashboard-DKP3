@@ -744,6 +744,7 @@ function resetMapDataFilter(){
   }
 
   refreshMapPopup();
+  scheduleDynamicMapLegendRender(4);
 }
 
 function refreshMapPopup(){
@@ -767,11 +768,13 @@ function waitForMapDataAndPopulateFilter(){
 
     if(window.MAP_DATA && window.MAP_DATA.length){
       populateMapFilters();
+      scheduleDynamicMapLegendRender(5);
       clearInterval(timer);
     }
 
     if(attempts >= 20){
       populateMapFilters();
+      scheduleDynamicMapLegendRender(5);
       clearInterval(timer);
     }
   }, 300);
@@ -848,7 +851,7 @@ function reloadMapGeojson(){
 
       refreshMiderMapSize();
       waitForMapDataAndPopulateFilter();
-      renderDynamicMapLegend();
+      scheduleDynamicMapLegendRender(8);
     })
     .catch(error => {
       console.error('Gagal memuat file GeoJSON:', error);
@@ -881,57 +884,233 @@ function reloadMapGeojson(){
 
 // =====================================================
 // MIDER 2.0 - LEGENDA DINAMIS KERAWANAN PANGAN
+// Versi stabil: tidak bergantung klik tema, aman terhadap timing API,
+// dan memakai Leaflet Control agar posisi legenda konsisten di peta.
 // =====================================================
+let dynamicMapLegendControl = null;
+let dynamicMapLegendControlEl = null;
+let dynamicMapLegendRenderTimer = null;
+let dynamicMapLegendWatchCounter = 0;
+
+function getCurrentMapLevelForLegend(){
+  return document.getElementById('mapLevelFilter')?.value || activeMapLevel || 'kecamatan';
+}
+
+function getCurrentMapKategoriForLegend(){
+  return document.getElementById('mapKategoriFilter')?.value || activeMapKategori || 'all';
+}
+
+function getCurrentMapIndikatorForLegend(){
+  return document.getElementById('mapIndikatorFilter')?.value || activeMapIndikator || 'all';
+}
+
 function isKerawananPanganActive(){
-  const kategori = document.getElementById('mapKategoriFilter')?.value || activeMapKategori || 'all';
-  const indikator = document.getElementById('mapIndikatorFilter')?.value || activeMapIndikator || 'all';
+  const level = normalizeText(getCurrentMapLevelForLegend());
+  const kategori = getCurrentMapKategoriForLegend();
+  const indikator = getCurrentMapIndikatorForLegend();
   const text = normalizeText(kategori + ' ' + indikator);
 
-  return activeMapLevel === 'kelurahan' && (
-    text.includes('kerawanan pangan') ||
-    text.includes('kerentanan pangan') ||
+  return level === 'kelurahan' && (
+    text.includes('kerawanan') ||
+    text.includes('kerentanan') ||
     text.includes('ketahanan dan kerentanan pangan')
   );
 }
 
-function renderDynamicMapLegend(){
-  const el = document.getElementById('mapLegend');
-  if(!el) return;
-
-  if(!isKerawananPanganActive()){
-    el.style.display = 'none';
-    el.innerHTML = '';
-    return;
-  }
-
+function getDynamicLegendRows(){
   let rows = Array.isArray(window.LEGENDA_DATA) ? window.LEGENDA_DATA : [];
+
   rows = rows
-    .filter(row => normalizeText(row.kategori) === 'kerawanan pangan')
+    .filter(row => {
+      const kategori = normalizeText(row?.kategori || '');
+      return !kategori || kategori.includes('kerawanan') || kategori.includes('kerentanan');
+    })
     .sort((a,b) => Number(a.urutan || 0) - Number(b.urutan || 0));
 
+  // Fallback agar legenda tetap tampil walaupun API legenda belum selesai dimuat
+  // atau sheet data_legenda sementara kosong.
   if(!rows.length){
     rows = [
-      {label:'Sangat Aman', warna:'#A7FFA7'},
-      {label:'Aman', warna:'#19FF19'},
-      {label:'Rentan', warna:'#FFD966'},
-      {label:'Rawan', warna:'#FF9900'},
-      {label:'Sangat Rawan', warna:'#FF0000'}
+      {label:'Sangat Aman', warna:'#A7FFA7', urutan:1},
+      {label:'Aman', warna:'#19FF19', urutan:2},
+      {label:'Rentan', warna:'#FFD966', urutan:3},
+      {label:'Rawan', warna:'#FF9900', urutan:4},
+      {label:'Sangat Rawan', warna:'#FF0000', urutan:5}
     ];
   }
 
-  el.innerHTML = `
-    <div class="mider-map-legend-title">Kerawanan Pangan</div>
+  return rows;
+}
+
+function ensureDynamicLegendStyles(){
+  if(document.getElementById('mider-dynamic-map-legend-style')) return;
+
+  const style = document.createElement('style');
+  style.id = 'mider-dynamic-map-legend-style';
+  style.textContent = `
+    .mider-dynamic-map-legend{
+      background:var(--panel,#ffffff);
+      color:var(--text,#1e293b);
+      border:1px solid var(--line,rgba(148,163,184,.35));
+      border-radius:14px;
+      box-shadow:0 12px 28px rgba(15,23,42,.22);
+      padding:12px 13px;
+      min-width:190px;
+      font-family:Inter,"Segoe UI",Arial,sans-serif;
+      line-height:1.35;
+      pointer-events:auto;
+    }
+    .mider-dynamic-map-legend-title{
+      font-size:13px;
+      font-weight:900;
+      margin-bottom:8px;
+      color:var(--text,#1e293b);
+    }
+    .mider-dynamic-map-legend-item{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin:5px 0;
+      font-size:12.5px;
+      font-weight:700;
+      color:var(--text,#1e293b);
+      white-space:nowrap;
+    }
+    .mider-dynamic-map-legend-color{
+      width:18px;
+      height:18px;
+      border-radius:5px;
+      border:1px solid rgba(15,23,42,.25);
+      flex:0 0 18px;
+    }
+    .leaflet-bottom.leaflet-right .mider-dynamic-map-legend{
+      margin:0 12px 12px 0;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function buildDynamicLegendHtml(rows){
+  return `
+    <div class="mider-dynamic-map-legend-title">Kerawanan Pangan</div>
     ${rows.map(row => `
-      <div class="mider-map-legend-item">
-        <span class="mider-map-legend-color" style="background:${escapePopupHtml(row.warna || '#64748b')}"></span>
+      <div class="mider-dynamic-map-legend-item">
+        <span class="mider-dynamic-map-legend-color" style="background:${escapePopupHtml(row.warna || '#64748b')}"></span>
         <span>${escapePopupHtml(row.label || '-')}</span>
       </div>
     `).join('')}
   `;
-  el.style.display = 'block';
+}
+
+function removeDynamicMapLegend(){
+  const mapObj = getMiderMap();
+
+  if(dynamicMapLegendControl && mapObj){
+    try{ mapObj.removeControl(dynamicMapLegendControl); }catch(error){}
+  }
+
+  dynamicMapLegendControl = null;
+  dynamicMapLegendControlEl = null;
+
+  const fallback = document.getElementById('mapLegend');
+  if(fallback){
+    fallback.innerHTML = '';
+    fallback.style.display = 'none';
+  }
+}
+
+function renderDynamicMapLegend(){
+  ensureDynamicLegendStyles();
+
+  if(!isKerawananPanganActive()){
+    removeDynamicMapLegend();
+    return;
+  }
+
+  const rows = getDynamicLegendRows();
+  const html = buildDynamicLegendHtml(rows);
+  const mapObj = getMiderMap();
+
+  if(mapObj && typeof L !== 'undefined'){
+    if(!dynamicMapLegendControl){
+      dynamicMapLegendControl = L.control({position:'bottomright'});
+      dynamicMapLegendControl.onAdd = function(){
+        dynamicMapLegendControlEl = L.DomUtil.create('div', 'mider-dynamic-map-legend');
+        if(L.DomEvent){
+          L.DomEvent.disableClickPropagation(dynamicMapLegendControlEl);
+          L.DomEvent.disableScrollPropagation(dynamicMapLegendControlEl);
+        }
+        return dynamicMapLegendControlEl;
+      };
+      dynamicMapLegendControl.addTo(mapObj);
+    }
+
+    if(dynamicMapLegendControlEl){
+      dynamicMapLegendControlEl.innerHTML = html;
+      dynamicMapLegendControlEl.style.display = 'block';
+    }
+  }
+
+  // Fallback untuk layout lama yang sudah memiliki <div id="mapLegend"></div>.
+  const fallback = document.getElementById('mapLegend');
+  if(fallback){
+    fallback.className = 'mider-dynamic-map-legend';
+    fallback.innerHTML = html;
+    fallback.style.display = mapObj ? 'none' : 'block';
+  }
+}
+
+function scheduleDynamicMapLegendRender(retryCount){
+  const retries = Number.isFinite(Number(retryCount)) ? Number(retryCount) : 6;
+
+  if(dynamicMapLegendRenderTimer){
+    clearTimeout(dynamicMapLegendRenderTimer);
+  }
+
+  dynamicMapLegendRenderTimer = setTimeout(function(){
+    renderDynamicMapLegend();
+
+    // Ulangi beberapa kali saat awal load untuk mengatasi urutan:
+    // DOM siap -> GeoJSON siap -> API data/legenda selesai.
+    if(retries > 0){
+      setTimeout(function(){
+        renderDynamicMapLegend();
+        scheduleDynamicMapLegendRender(retries - 1);
+      }, 350);
+    }
+  }, 60);
 }
 
 window.renderDynamicMapLegend = renderDynamicMapLegend;
+window.scheduleDynamicMapLegendRender = scheduleDynamicMapLegendRender;
+
+// Pantau perubahan filter apa pun, termasuk level wilayah.
+document.addEventListener('change', function(event){
+  const id = event.target && event.target.id;
+  if([
+    'mapLevelFilter',
+    'mapYearFilter',
+    'mapKecamatanFilter',
+    'mapKelurahanFilter',
+    'mapKategoriFilter',
+    'mapIndikatorFilter'
+  ].includes(id)){
+    scheduleDynamicMapLegendRender(4);
+  }
+});
+
+// Saat data legenda diisi belakangan oleh app.js, render ulang otomatis.
+const dynamicMapLegendWatcher = setInterval(function(){
+  dynamicMapLegendWatchCounter++;
+
+  if(isKerawananPanganActive()){
+    renderDynamicMapLegend();
+  }
+
+  if(dynamicMapLegendWatchCounter >= 40){
+    clearInterval(dynamicMapLegendWatcher);
+  }
+}, 500);
 
 // Jalankan peta pertama kali dengan mode aman
 if(initMiderMap() && getMiderMap()){
@@ -950,6 +1129,7 @@ document.addEventListener('click', function(event){
       reloadMapGeojson();
     }
     refreshMiderMapSize();
+    scheduleDynamicMapLegendRender(5);
   }
 });
 
@@ -970,6 +1150,7 @@ document.addEventListener('DOMContentLoaded', function(){
       }
 
       refreshMiderMapSize();
+      scheduleDynamicMapLegendRender(5);
     }
   });
 
@@ -978,3 +1159,6 @@ document.addEventListener('DOMContentLoaded', function(){
     attributeFilter: ['style', 'class']
   });
 });
+
+// Render awal legenda setelah seluruh script dimuat.
+setTimeout(function(){ scheduleDynamicMapLegendRender(8); }, 500);
