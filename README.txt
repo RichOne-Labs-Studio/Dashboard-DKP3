@@ -1,45 +1,21 @@
-AUDIT APP.JS MIDER 2.0
+AUDIT & PERBAIKAN MIDER MOBILE FINAL
 
-Status file awal:
-- File sudah mengambil API Google Sheets.
-- File sudah membaca config, legenda, tema mentah, KPI, peta kecamatan, dan peta kelurahan.
-- Namun pembacaan tema masih dominan memakai rawData.tema, belum optimal memakai API baru rawData.theme / rawData.warna_tema.
-- Masih ada blok hardcode STELLAR NUSA HIJAU THEME HARDENING yang bisa menimpa warna dari spreadsheet.
+File yang diperbaiki:
+1. index.html
+   - Meta viewport sudah memakai viewport-fit=cover.
+   - Script Theme Bridge inline dihapus agar tidak bentrok dengan app.js.
 
-Perbaikan yang dilakukan:
-1. Menambahkan dukungan API baru:
-   - rawData.theme
-   - rawData.warna_tema
-   - theme.dark
-   - theme.light
+2. style.css
+   - Ditambahkan patch mobile safe area agar header turun di bawah status bar/notch HP.
+   - Ditambahkan jarak antara filter peta dan frame peta.
+   - Card/frame peta diberi padding, overflow hidden, dan radius agar Leaflet rapi.
+   - Tinggi peta mobile distabilkan.
 
-2. Menambahkan variabel global:
-   - MIDER_THEME_OBJECT
-   - window.MIDER_THEME_OBJECT
-   - window.MIDER_RAW_DATA
+3. app.js
+   - Theme API diperbaiki agar membaca theme.dark dan theme.light.
+   - Tetap kompatibel dengan data tema lama berupa array dari sheet.
+   - Fungsi refresh ukuran peta diperkuat dengan invalidateSize beberapa kali saat layer peta dibuka.
 
-3. Menambahkan fungsi:
-   - applyMiderThemeObject(themeObject)
-   - applyMiderThemeFromApi(rawData)
-
-4. Mengubah startDashboard() agar:
-   - menyimpan rawData terbaru
-   - membaca theme.dark dan theme.light
-   - tetap kompatibel dengan data lama rawData.tema
-
-5. Mengubah tombol dark/light agar:
-   - menerapkan ulang tema dari API baru
-   - tidak hanya dari tabel tema mentah lama
-
-6. Menghapus blok hardcode:
-   - MIDER 2.0 - STELLAR NUSA HIJAU THEME HARDENING
-
-7. Mengubah efek warna kartu/grafik agar:
-   - memakai getMiderChartColors()
-   - mengikuti variabel chart dari CSS/spreadsheet
-
-Catatan pemakaian:
-- Rename app_audit_theme_api.js menjadi app.js.
-- Ganti file app.js lama di folder dashboard.
-- Pastikan Apps Script sudah deploy ulang dan menghasilkan theme.dark serta theme.light.
-- Pastikan style.css memakai variabel CSS dari spreadsheet.
+Catatan:
+- Setelah mengganti file, refresh browser dengan clear cache.
+- Untuk versi PWA atau WebView Android, viewport-fit=cover + CSS safe-area akan menjaga header tidak tertimpa status bar.

@@ -778,6 +778,7 @@ function startDashboard(rawData){
     document.documentElement.setAttribute('data-theme', currentTheme);
     applyMiderThemeFromApi(window.MIDER_RAW_DATA || rawData);
   }, 100);
+
   renderMiderFooter(CONFIG, rawData.generated_at);
   scheduleMiderAutoRefresh(CONFIG);
 
@@ -1050,7 +1051,6 @@ function applyMiderThemeFromSpreadsheet(rows){
   }
 }
 
-
 function applyMiderThemeObject(themeObject){
   if(!themeObject || typeof themeObject !== 'object'){
     return;
@@ -1076,7 +1076,7 @@ function applyMiderThemeObject(themeObject){
     }
 
     const vars = Object.keys(theme)
-      .filter(function(key){ return theme[key] !== null && theme[key] !== undefined && String(theme[key]).trim() !== ''; })
+      .filter(function(key){ return theme[key] !== undefined && theme[key] !== null && String(theme[key]).trim() !== ''; })
       .map(function(key){ return '  ' + cssVarName(key) + ': ' + theme[key] + ';'; })
       .join('\n');
 
@@ -1088,7 +1088,6 @@ function applyMiderThemeObject(themeObject){
     normalizeThemeName((window.CONFIG || {}).default_theme || 'dark');
 
   document.documentElement.setAttribute('data-theme', activeTheme);
-
   document.dispatchEvent(new CustomEvent('mider-theme-updated', {
     detail: { theme: activeTheme }
   }));
@@ -1099,7 +1098,8 @@ function applyMiderThemeObject(themeObject){
 }
 
 function applyMiderThemeFromApi(rawData){
-  rawData = rawData || {};
+  rawData = rawData || window.MIDER_RAW_DATA || {};
+
   const themeObject = rawData.theme || rawData.warna_tema || window.MIDER_THEME_OBJECT || {};
 
   if(themeObject && Object.keys(themeObject).length){
@@ -1107,7 +1107,7 @@ function applyMiderThemeFromApi(rawData){
     return;
   }
 
-  applyMiderThemeFromSpreadsheet(rawData.tema || window.TEMA_DATA || TEMA_DATA || []);
+  applyMiderThemeFromSpreadsheet(rawData.tema || window.TEMA_DATA || []);
 }
 
 function refreshMiderVisualThemeAfterSpreadsheet(){
@@ -1189,13 +1189,12 @@ loadDashboardData({forceRefresh:true, useCache:false});
 
 
 setTimeout(()=>{
-  const chartColors = getMiderChartColors();
   document.querySelectorAll('#indicatorCharts .kpi').forEach((el,i)=>{
-    const color = chartColors[i % chartColors.length];
+    const color = DASH_CHART_COLORS[i % DASH_CHART_COLORS.length];
     el.style.borderTop = `4px solid ${color}`;
   });
   document.querySelectorAll('#kpiGrid .kpi').forEach((el,i)=>{
-    const color = chartColors[i % chartColors.length];
+    const color = DASH_CHART_COLORS[i % DASH_CHART_COLORS.length];
     el.style.boxShadow = `0 6px 18px ${color}18`;
   });
 },500);
@@ -1316,11 +1315,28 @@ setTimeout(scheduleSmartKpiIcons, 1000);
   window.addEventListener('resize', handleHeaderAutoHide);
 })();
 
+
+function forceRefreshMiderMapSize(){
+  [80, 250, 500, 900].forEach(function(delay){
+    setTimeout(function(){
+      if(typeof refreshMiderMapSize === 'function'){
+        refreshMiderMapSize();
+      }else if(window.map && typeof window.map.invalidateSize === 'function'){
+        window.map.invalidateSize(true);
+      }
+    }, delay);
+  });
+}
+
 function showLayer(layerId, shouldReset = true){
 
   document.getElementById('dashboardLayer').style.display = 'none';
   document.getElementById('mapLayer').style.display = 'none';
   document.getElementById(layerId).style.display = 'block';
+
+  if(layerId === 'mapLayer' && typeof forceRefreshMiderMapSize === 'function'){
+    forceRefreshMiderMapSize();
+  }
 
   document.querySelectorAll('.sidebar-menu').forEach(btn=>{
     btn.classList.remove('active');
@@ -1431,7 +1447,7 @@ document.addEventListener('DOMContentLoaded', function(){
   function refreshMapSize(){
     setTimeout(function(){
       if(window.map){
-        window.map.invalidateSize();
+        window.map.invalidateSize(true);
       }
     }, 350);
   }
@@ -1685,3 +1701,61 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
 
 // ==== END MIDER 2.0 THEME FIX: legacy light-mode removed, spreadsheet theme active ====
 
+
+// =====================================================
+// MIDER 2.0 - STELLAR NUSA HIJAU THEME HARDENING
+// =====================================================
+(function(){
+  function ensureStellarFallbackStyle(){
+    if(document.getElementById('mider-stellar-fallback-theme')) return;
+
+    const style = document.createElement('style');
+    style.id = 'mider-stellar-fallback-theme';
+    style.textContent = `
+      :root,[data-theme="dark"]{
+        --bg:#0F111A;
+        --surface:#181824;
+        --panel:#1C1D2B;
+        --panel2:#242638;
+        --text:#F8FAFC;
+        --muted:#CBD5E1;
+        --line:#334155;
+        --blue:#38CE3C;
+        --blue2:#2EB532;
+        --green:#38CE3C;
+        --red:#FF4D6B;
+        --orange:#FFDE73;
+        --purple:#8E32E9;
+        --teal:#14B8A6;
+        --shadow:0 18px 42px rgba(0,0,0,.34);
+        --softShadow:0 10px 28px rgba(0,0,0,.24);
+      }
+      [data-theme="light"]{
+        --bg:#F5F7FA;
+        --surface:#FFFFFF;
+        --panel:#FFFFFF;
+        --panel2:#F8FAFC;
+        --text:#1F2937;
+        --muted:#64748B;
+        --line:#E2E8F0;
+        --blue:#38CE3C;
+        --blue2:#2EB532;
+        --green:#38CE3C;
+        --red:#FF4D6B;
+        --orange:#FFDE73;
+        --purple:#8E32E9;
+        --teal:#14B8A6;
+        --shadow:0 14px 34px rgba(15,17,26,.12);
+        --softShadow:0 8px 22px rgba(15,17,26,.09);
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  document.addEventListener('DOMContentLoaded', ensureStellarFallbackStyle);
+  document.addEventListener('mider-theme-updated', function(){
+    if(typeof renderDynamicMapLegend === 'function'){
+      renderDynamicMapLegend();
+    }
+  });
+})();
