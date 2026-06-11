@@ -239,14 +239,11 @@ function trendOf(rows, ind, targetYear=null){
   };
 }
 function renderKPIs(rows){
-  const kpiGridEl = document.getElementById('kpiGrid');
-  if(!kpiGridEl) return;
-
   let inds = groupIndicators(rows);
 if(isExecutiveDashboardMode()) inds = inds.filter(isExecutiveIndicator);
   const selectedYear=getSelectedDashboardYear();
 
-  kpiGridEl.innerHTML=inds.map(ind=>{
+  kpiGrid.innerHTML=inds.map(ind=>{
     const latest=latestForIndicator(rows,ind);
     const yoyYear=selectedYear==='all' ? latest?.tahun : selectedYear;
     const tr=trendOf(DATA,ind,yoyYear);
@@ -316,12 +313,9 @@ function renderMiniCharts(rows,inds){
   miniCharts.forEach(c=>c.destroy());
   miniCharts=[];
 
-  const indicatorChartsEl = document.getElementById('indicatorCharts');
-  if(!indicatorChartsEl) return;
-
   const chartYears = getChartYears();
 
-  indicatorChartsEl.innerHTML=inds.map((ind,i)=>`<div class="card kpi smallChart"><h3>${ind.indikator}</h3><canvas id="mini${i}"></canvas><div class="meta">${ind.urusan} • ${ind.kategori}</div></div>`).join('');
+  indicatorCharts.innerHTML=inds.map((ind,i)=>`<div class="card kpi smallChart"><h3>${ind.indikator}</h3><canvas id="mini${i}"></canvas><div class="meta">${ind.urusan} • ${ind.kategori}</div></div>`).join('');
 
   inds.forEach((ind,i)=>{
     const vals=chartYears.map(y=>
@@ -337,10 +331,7 @@ function renderMiniCharts(rows,inds){
     const allowedCharts = ['line','bar','pie','doughnut','radar','polarArea'];
     const type = allowedCharts.includes(ind.chart)? ind.chart: 'line';
 
-    const miniCanvas = document.getElementById('mini'+i);
-    if(!miniCanvas) return;
-
-    miniCharts.push(new Chart(miniCanvas,{
+    miniCharts.push(new Chart(document.getElementById('mini'+i),{
       type,
       data:{
         labels:chartYears,
@@ -411,12 +402,9 @@ function renderInsights(rows){
 }
 
 function renderTable(rows){
-  const matrixTableEl = document.getElementById('matrixTable');
-  if(!matrixTableEl) return;
-
   const sortedRows=[...rows].sort((a,b)=>(a.tahun||0)-(b.tahun||0)||String(a.urusan||'').localeCompare(String(b.urusan||''))||String(a.kategori||'').localeCompare(String(b.kategori||''))||String(a.indikator||'').localeCompare(String(b.indikator||'')));
 
-  matrixTableEl.innerHTML='<thead><tr><th>Tahun</th><th>Urusan</th><th>Kategori</th><th>Indikator</th><th>Satuan</th><th>Nilai</th><th>YoY</th><th>Keterangan</th></tr></thead><tbody>'+
+  matrixTable.innerHTML='<thead><tr><th>Tahun</th><th>Urusan</th><th>Kategori</th><th>Indikator</th><th>Satuan</th><th>Nilai</th><th>YoY</th><th>Keterangan</th></tr></thead><tbody>'+
   sortedRows.map(d=>{
     const ind={kode:d.kode,urusan:d.urusan,kategori:d.kategori};
     const tr=trendOf(DATA,ind,d.tahun);
@@ -867,7 +855,7 @@ async function loadDashboardData(options = {}){
       }
     }
 
-    await loadDashboardDataFromJsonp();
+    await loadDashboardDataFromFetch({forceRefresh:true});
 
   }catch(fetchError){
     console.warn('Fetch API gagal, mencoba mode JSONP:', fetchError);
@@ -1305,10 +1293,8 @@ function pilihUrusanSidebar(urusan, mode = 'dashboard'){
   if(filter){
     filter.value = urusan;
     updateKategori();
-    const kategoriFilterEl = document.getElementById('kategoriFilter');
-    const searchFilterEl = document.getElementById('searchFilter');
-    if(kategoriFilterEl) kategoriFilterEl.value = 'all';
-    if(searchFilterEl) searchFilterEl.value = '';
+    kategoriFilter.value = 'all';
+    searchFilter.value = '';
     render();
   }
 
@@ -1356,8 +1342,7 @@ function pilihKategoriSidebar(kategori, mode = 'dashboard'){
 
   if(filter){
     filter.value = kategori;
-    const searchFilterEl = document.getElementById('searchFilter');
-    if(searchFilterEl) searchFilterEl.value = '';
+    searchFilter.value = '';
     render();
   }
 
