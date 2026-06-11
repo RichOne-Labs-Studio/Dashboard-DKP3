@@ -1,7 +1,6 @@
 const DASH_CHART_COLORS = [
-  '#0B6FEA', '#10B981', '#F97316', '#7C3AED', '#0EA5A4', '#EC4899',
-  '#F59E0B', '#2563EB', '#14B8A6', '#9333EA', '#EF4444', '#22C55E',
-  '#06B6D4', '#D946EF', '#84CC16', '#FB7185'
+  '#166534', '#16A34A', '#22C55E', '#65A30D', '#0EA5A4', '#2563EB',
+  '#F59E0B', '#DC2626', '#0F766E', '#15803D', '#0284C7', '#7C3AED'
 ];
 
 Chart.defaults.color = '#334155';
@@ -745,22 +744,23 @@ function setupMapLevelFilter(){
 }
 
 function startDashboard(rawData){
+  rawData = rawData || {};
 
- rawData = rawData || {};
- CONFIG = rawData.config || {};
- LEGENDA_DATA = rawData.legenda || [];
- TEMA_DATA = rawData.tema || [];
- window.CONFIG = CONFIG;
- window.LEGENDA_DATA = LEGENDA_DATA;
- window.TEMA_DATA = TEMA_DATA;
- window.MIDER_GENERATED_AT = rawData.generated_at || '';
+  CONFIG = rawData.config || {};
+  LEGENDA_DATA = rawData.legenda || [];
+  TEMA_DATA = rawData.tema || [];
 
- applyMiderThemeFromSpreadsheet(TEMA_DATA);
- initMiderTheme(CONFIG);
- renderMiderFooter(CONFIG, rawData.generated_at);
- scheduleMiderAutoRefresh(CONFIG);
+  window.CONFIG = CONFIG;
+  window.LEGENDA_DATA = LEGENDA_DATA;
+  window.TEMA_DATA = TEMA_DATA;
+  window.MIDER_GENERATED_AT = rawData.generated_at || '';
 
- const maintenanceStatus = String(CONFIG.maintenance || rawData.maintenance || 'OFF').trim().toUpperCase();
+  applyMiderThemeFromSpreadsheet(TEMA_DATA);
+  initMiderTheme(CONFIG);
+  renderMiderFooter(CONFIG, rawData.generated_at);
+  scheduleMiderAutoRefresh(CONFIG);
+
+  const maintenanceStatus = String(CONFIG.maintenance || rawData.maintenance || 'OFF').trim().toUpperCase();
 
   if(maintenanceStatus === 'ON'){
     document.body.innerHTML = `
@@ -776,38 +776,35 @@ function startDashboard(rawData){
     return;
   }
 
-DATA = normalizeDashboardData(rawData.kpi || rawData);
-MAP_DATA_KECAMATAN = rawData.peta_kecamatan || rawData.peta || [];
-MAP_DATA_KELURAHAN = rawData.peta_kelurahan || [];
+  DATA = normalizeDashboardData(rawData.kpi || rawData);
+  MAP_DATA_KECAMATAN = rawData.peta_kecamatan || rawData.peta || [];
+  MAP_DATA_KELURAHAN = rawData.peta_kelurahan || [];
 
-MAP_DATA = getActiveMapData();
-window.MAP_DATA = MAP_DATA;
-window.MAP_DATA_KECAMATAN = MAP_DATA_KECAMATAN;
-window.MAP_DATA_KELURAHAN = MAP_DATA_KELURAHAN;
+  MAP_DATA = getActiveMapData();
+  window.MAP_DATA = MAP_DATA;
+  window.MAP_DATA_KECAMATAN = MAP_DATA_KECAMATAN;
+  window.MAP_DATA_KELURAHAN = MAP_DATA_KELURAHAN;
 
+  setTimeout(function(){
+    if(typeof populateMapFilters === 'function') populateMapFilters();
+    if(typeof renderDynamicMapLegend === 'function') renderDynamicMapLegend();
+  }, 500);
 
-/* Paksa isi ulang filter peta setelah data peta siap */
-setTimeout(function(){
-  if (typeof populateMapFilters === 'function') {
-    populateMapFilters();
+  years = [...new Set(DATA.map(d=>d.tahun))].sort((a,b)=>a-b);
+
+  if(!DATA.length){
+    throw new Error('Data KPI kosong atau header spreadsheet tidak sesuai.');
   }
-}, 500);
 
-years = [...new Set(DATA.map(d=>d.tahun))].sort((a,b)=>a-b);
+  populateFilters();
+  window.dashboardInitialized = true;
 
-if(!DATA.length){
-throw new Error('Data KPI kosong atau header spreadsheet tidak sesuai.');
-}
+  setupMapLevelFilter();
 
-populateFilters();
-window.dashboardInitialized = true;
+  const activeLayer = document.getElementById('mapLayer')?.style.display === 'block' ? 'map' : 'dashboard';
+  populateSidebarMenu(activeLayer);
 
-setupMapLevelFilter();
-
-const activeLayer = document.getElementById('mapLayer')?.style.display === 'block' ? 'map' : 'dashboard';
-populateSidebarMenu(activeLayer);
-
-render();
+  render();
 }
 
 async function loadDashboardDataFromFetch(options = {}){
@@ -942,7 +939,7 @@ function applyMiderThemeFromSpreadsheet(rows){
   if(!Array.isArray(rows) || !rows.length) return;
 
   ['light','dark'].forEach(themeName => {
-    const selector = themeName === 'light' ? ':root' : '[data-theme="dark"]';
+    const selector = themeName === 'light' ? ':root, [data-theme="light"]' : '[data-theme="dark"]';
     let style = document.getElementById('mider-theme-spreadsheet-' + themeName);
     if(!style){
       style = document.createElement('style');
@@ -952,13 +949,11 @@ function applyMiderThemeFromSpreadsheet(rows){
 
     const vars = rows
       .filter(row => normalizeThemeName(row.tema) === themeName)
-      .map(row => `  ${cssVarName(row.variabel)}: ${row.nilai};`)
-      .join('
-');
+      .filter(row => row.variabel && row.nilai)
+      .map(row => '  ' + cssVarName(row.variabel) + ': ' + row.nilai + ';')
+      .join('\n');
 
-    style.textContent = vars ? `${selector}{
-${vars}
-}` : '';
+    style.textContent = vars ? selector + '{\n' + vars + '\n}' : '';
   });
 }
 
