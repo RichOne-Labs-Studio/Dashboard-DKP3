@@ -949,7 +949,7 @@ function applyMiderThemeFromSpreadsheet(rows){
     return;
   }
 
-  ['light','dark'].forEach(themeName => {
+  ['light','dark'].forEach(function(themeName){
     const selector = themeName === 'light'
       ? ':root, [data-theme="light"]'
       : '[data-theme="dark"]';
@@ -963,15 +963,12 @@ function applyMiderThemeFromSpreadsheet(rows){
     }
 
     const vars = rows
-      .filter(row => normalizeThemeName(row.tema) === themeName)
-      .filter(row => row.variabel && row.nilai)
-      .map(row => '  ' + cssVarName(row.variabel) + ': ' + row.nilai + ';')
-      .join('
-');
+      .filter(function(row){ return normalizeThemeName(row.tema) === themeName; })
+      .filter(function(row){ return row.variabel && row.nilai; })
+      .map(function(row){ return '  ' + cssVarName(row.variabel) + ': ' + row.nilai + ';'; })
+      .join('\n');
 
-    style.textContent = vars ? selector + '{
-' + vars + '
-}' : '';
+    style.textContent = vars ? selector + '{\n' + vars + '\n}' : '';
   });
 
   const activeTheme =
