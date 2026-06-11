@@ -2210,3 +2210,109 @@ button.green{
 .trend.down{color:#FF4D6B!important}
 .trend.flat{color:#FFDE73!important}
 
+
+
+/* =====================================================
+   MIDER 2.0 - FULL SPREADSHEET THEME CONTROL
+   Warna UI dikendalikan dari sheet data_warna_tema.
+   Warna polygon Kerawanan Pangan tetap dari data peta.
+   ===================================================== */
+
+:root,[data-theme="dark"]{
+  --bg:#0F111A;--surface:#181824;--panel:#1C1D2B;--panel2:#242638;
+  --card-bg:#1C1D2B;--card-text:#F8FAFC;--text:#F8FAFC;--muted:#A8B0C3;--line:#2B2D3D;
+  --blue:#38CE3C;--blue2:#2EB532;--green:#38CE3C;--red:#FF4D6B;--orange:#FFDE73;--purple:#8E32E9;--teal:#14B8A6;
+  --sidebar-bg:#181824;--sidebar-text:#A8B0C3;--sidebar-title:#38CE3C;--sidebar-hover:#232334;
+  --sidebar-active-bg:rgba(56,206,60,.08);--sidebar-active-text:#38CE3C;--sidebar-active-line:#38CE3C;--sidebar-border:rgba(255,255,255,.06);
+  --topbar-bg:#FFFFFF;--topbar-text:#181824;--topbar-muted:#64748B;--topbar-border:#E2E8F0;
+  --filter-bg:#FFFFFF;--filter-text:#181824;--filter-border:#D7DEE8;--filter-focus:#38CE3C;
+  --button-primary-bg:#38CE3C;--button-primary-text:#08110A;--button-secondary-bg:#8E32E9;--button-secondary-text:#FFFFFF;
+  --table-header-bg:#181824;--table-header-text:#FFFFFF;--table-row-bg:#FFFFFF;--table-row-alt:#F8FAFC;--table-hover:rgba(56,206,60,.08);
+  --footer-bg:#181824;--footer-text:#A8B0C3;--footer-border:rgba(255,255,255,.06);
+  --legend-bg:#181824;--legend-text:#F8FAFC;--legend-border:rgba(56,206,60,.25);
+  --chart-1:#38CE3C;--chart-2:#8E32E9;--chart-3:#FFDE73;--chart-4:#FF4D6B;--chart-5:#14B8A6;--chart-6:#2563EB;
+}
+
+[data-theme="light"]{
+  --bg:#F5F7FA;--surface:#FFFFFF;--panel:#FFFFFF;--panel2:#F8FAFC;
+  --card-bg:#FFFFFF;--card-text:#181824;--text:#181824;--muted:#64748B;--line:#E2E8F0;
+  --blue:#38CE3C;--blue2:#2EB532;--green:#38CE3C;--red:#FF4D6B;--orange:#FFDE73;--purple:#8E32E9;--teal:#14B8A6;
+  --sidebar-bg:#181824;--sidebar-text:#A8B0C3;--sidebar-title:#38CE3C;--sidebar-hover:#232334;
+  --sidebar-active-bg:rgba(56,206,60,.08);--sidebar-active-text:#38CE3C;--sidebar-active-line:#38CE3C;--sidebar-border:rgba(255,255,255,.06);
+  --topbar-bg:#FFFFFF;--topbar-text:#181824;--topbar-muted:#64748B;--topbar-border:#E2E8F0;
+  --filter-bg:#FFFFFF;--filter-text:#181824;--filter-border:#D7DEE8;--filter-focus:#38CE3C;
+  --button-primary-bg:#38CE3C;--button-primary-text:#08110A;--button-secondary-bg:#8E32E9;--button-secondary-text:#FFFFFF;
+  --table-header-bg:#181824;--table-header-text:#FFFFFF;--table-row-bg:#FFFFFF;--table-row-alt:#F8FAFC;--table-hover:rgba(56,206,60,.08);
+  --footer-bg:#FFFFFF;--footer-text:#64748B;--footer-border:#E2E8F0;
+  --legend-bg:#FFFFFF;--legend-text:#181824;--legend-border:#D7DEE8;
+  --chart-1:#38CE3C;--chart-2:#8E32E9;--chart-3:#FFDE73;--chart-4:#FF4D6B;--chart-5:#14B8A6;--chart-6:#2563EB;
+}
+
+body{background:var(--bg)!important;color:var(--text)!important}
+.app-layout,.main-content{background:var(--bg)!important}
+
+/* Sidebar ala Stellar */
+.sidebar{background:var(--sidebar-bg)!important;color:var(--sidebar-text)!important;border-right:1px solid var(--sidebar-border)!important;box-shadow:none!important}
+.brand h2{color:#FFFFFF!important;letter-spacing:.02em}
+.brand span{color:var(--sidebar-text)!important;opacity:.70}
+.sidebar-title{color:var(--sidebar-title)!important;font-size:11px!important;font-weight:900!important;letter-spacing:.08em!important}
+.sidebar-menu,#sidebarUrusan button,#sidebarKategori button,#sidebarIndikator button{
+  background:transparent!important;color:var(--sidebar-text)!important;border-radius:0!important;border-left:3px solid transparent!important;
+  border-top:0!important;border-right:0!important;border-bottom:0!important;box-shadow:none!important;padding:11px 12px!important;margin-bottom:4px!important;transform:none!important
+}
+.sidebar-menu:hover,#sidebarUrusan button:hover,#sidebarKategori button:hover,#sidebarIndikator button:hover{
+  background:var(--sidebar-hover)!important;color:#FFFFFF!important;transform:none!important;box-shadow:none!important
+}
+.sidebar-menu.active,#sidebarUrusan button.active-filter,#sidebarKategori button.active-filter,#sidebarIndikator button.active-filter{
+  background:var(--sidebar-active-bg)!important;color:var(--sidebar-active-text)!important;border-left:3px solid var(--sidebar-active-line)!important;box-shadow:none!important
+}
+.sidebar-menu.active::after,#sidebarUrusan button.active-filter::after,#sidebarKategori button.active-filter::after,#sidebarIndikator button.active-filter::after{
+  content:"";float:right;width:8px;height:8px;margin-top:6px;border-radius:50%;background:var(--sidebar-active-line)
+}
+
+/* Topbar */
+header,.topbar{background:var(--topbar-bg)!important;color:var(--topbar-text)!important;border-bottom:1px solid var(--topbar-border)!important;box-shadow:0 4px 16px rgba(15,17,26,.06)!important}
+.header-title h1{color:var(--topbar-text)!important}
+.header-title p{color:var(--topbar-muted)!important}
+.hamburger,.theme-toggle{background:rgba(56,206,60,.12)!important;color:var(--blue)!important;border:1px solid rgba(56,206,60,.22)!important;box-shadow:none!important}
+
+/* Panels, cards, filters */
+.panel,.card,.section,.kpis,.actions{background:var(--panel)!important;color:var(--text)!important;border:1px solid var(--line)!important;box-shadow:var(--softShadow)!important}
+.kpi,.summary .card,.tableWrap{background:var(--card-bg)!important;color:var(--card-text)!important;border:1px solid var(--line)!important}
+.section h2,.kpi h3{color:var(--text)!important}
+.section h2::before{background:var(--blue)!important;color:var(--button-primary-text)!important}
+.section p,.meta,.summary span,.footer{color:var(--muted)!important}
+label{color:var(--text)!important}
+select,input{background:var(--filter-bg)!important;color:var(--filter-text)!important;border-color:var(--filter-border)!important}
+select:focus,input:focus{border-color:var(--filter-focus)!important;box-shadow:0 0 0 4px rgba(56,206,60,.18)!important}
+
+/* Buttons */
+button{background:var(--button-primary-bg)!important;color:var(--button-primary-text)!important;box-shadow:none!important}
+button.secondary{background:var(--button-secondary-bg)!important;color:var(--button-secondary-text)!important;border:1px solid var(--button-secondary-bg)!important}
+button.green{background:var(--button-primary-bg)!important;color:var(--button-primary-text)!important}
+
+/* Accent cards */
+.summary .card::before{background:var(--chart-1)!important}
+.summary .card:nth-child(2)::before{background:var(--chart-2)!important}
+.summary .card:nth-child(3)::before{background:var(--chart-3)!important}
+.summary .card:nth-child(4)::before{background:var(--chart-4)!important}
+.summary b,.kpi .value{color:var(--chart-1)!important}
+.summary .card:nth-child(2) b,.kpi:nth-child(6n+2) .value{color:var(--chart-2)!important}
+.summary .card:nth-child(3) b,.kpi:nth-child(6n+3) .value{color:var(--chart-3)!important}
+.summary .card:nth-child(4) b,.kpi:nth-child(6n+4) .value{color:var(--chart-4)!important}
+.kpi:nth-child(6n+5) .value{color:var(--chart-5)!important}
+.kpi:nth-child(6n+6) .value{color:var(--chart-6)!important}
+
+/* Table */
+.matrix th{background:var(--table-header-bg)!important;color:var(--table-header-text)!important}
+.matrix td{background:var(--table-row-bg)!important;color:var(--text)!important}
+.matrix tr:nth-child(even) td{background:var(--table-row-alt)!important}
+.matrix tr:hover td{background:var(--table-hover)!important}
+
+/* Legend and footer */
+.mider-map-legend,.leaflet-control .mider-map-legend-box,.mider-map-legend-box{
+  background:var(--legend-bg)!important;color:var(--legend-text)!important;border:1px solid var(--legend-border)!important;box-shadow:0 12px 26px rgba(0,0,0,.18)!important
+}
+.mider-map-legend-title{color:var(--sidebar-active-text)!important}
+.mider-dynamic-footer{background:var(--footer-bg)!important;color:var(--footer-text)!important;border-top:1px solid var(--footer-border)!important}
+.trend.up{color:var(--green)!important}.trend.down{color:var(--red)!important}.trend.flat{color:var(--orange)!important}

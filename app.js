@@ -1,4 +1,4 @@
-const DASH_CHART_COLORS = [
+let DASH_CHART_COLORS = [
   '#38CE3C', '#8E32E9', '#FFDE73', '#FF4D6B', '#14B8A6', '#2563EB',
   '#2EB532', '#A855F7', '#F97316', '#0EA5A4', '#60A5FA', '#F472B6'
 ];
@@ -7,13 +7,21 @@ Chart.defaults.color = '#CBD5E1';
 Chart.defaults.font.family = 'Inter, Segoe UI, Poppins, Arial, sans-serif';
 Chart.defaults.borderColor = 'rgba(148,163,184,.18)';
 
+function getMiderChartColors(){
+  const styles = getComputedStyle(document.documentElement);
+  const keys = ['--chart-1','--chart-2','--chart-3','--chart-4','--chart-5','--chart-6','--chart-7','--chart-8','--chart-9','--chart-10','--chart-11','--chart-12'];
+  const fromCss = keys.map(key => styles.getPropertyValue(key).trim()).filter(Boolean);
+  return fromCss.length ? fromCss : DASH_CHART_COLORS;
+}
+
 const DashboardColorPlugin = {
   id: 'dashboardColorPlugin',
   beforeUpdate(chart) {
     if (!chart.data || !chart.data.datasets) return;
     chart.data.datasets.forEach((ds, i) => {
       const canvasIndex = [...document.querySelectorAll('canvas')].indexOf(chart.canvas);
-      const color = DASH_CHART_COLORS[(canvasIndex + i) % DASH_CHART_COLORS.length];
+      const chartColors = getMiderChartColors();
+      const color = chartColors[(canvasIndex + i) % chartColors.length];
       const soft = color + '2E';
       const mid = color + 'C7';
       if (chart.config.type === 'line') {
@@ -934,36 +942,65 @@ function normalizeThemeName(value){
 }
 
 function cssVarName(name){
-  const key = String(name || '').trim().toLowerCase().replace(/^--/,'').replace(/\s+/g,'_');
+  const key = String(name || '').trim().toLowerCase().replace(/^--/,'').replace(/\s+/g,'_').replace(/-+/g,'_');
+
   const map = {
-    bg:'--bg',
-    background:'--bg',
-    surface:'--surface',
-    sidebar:'--surface',
-    panel:'--panel',
-    card:'--panel',
-    panel2:'--panel2',
-    text:'--text',
-    muted:'--muted',
-    line:'--line',
-    primary:'--blue',
-    primary2:'--blue2',
-    accent:'--blue',
-    blue:'--blue',
-    blue2:'--blue2',
-    success:'--green',
-    green:'--green',
-    danger:'--red',
-    red:'--red',
-    warning:'--orange',
-    orange:'--orange',
-    purple:'--purple',
-    violet:'--purple',
-    teal:'--teal',
-    shadow:'--shadow',
-    soft_shadow:'--softShadow',
-    radius:'--radius'
+    bg:'--bg', background:'--bg', surface:'--surface',
+    panel:'--panel', panel2:'--panel2',
+    card:'--card-bg', card_bg:'--card-bg', card_text:'--card-text',
+    text:'--text', muted:'--muted', line:'--line',
+    radius:'--radius', shadow:'--shadow', soft_shadow:'--softShadow',
+
+    primary:'--blue', primary2:'--blue2', accent:'--blue',
+    blue:'--blue', blue2:'--blue2',
+    success:'--green', green:'--green',
+    danger:'--red', red:'--red',
+    warning:'--orange', orange:'--orange',
+    purple:'--purple', violet:'--purple', teal:'--teal',
+
+    sidebar_bg:'--sidebar-bg',
+    sidebar_text:'--sidebar-text',
+    sidebar_title:'--sidebar-title',
+    sidebar_hover:'--sidebar-hover',
+    sidebar_active_bg:'--sidebar-active-bg',
+    sidebar_active_text:'--sidebar-active-text',
+    sidebar_active_line:'--sidebar-active-line',
+    sidebar_border:'--sidebar-border',
+
+    topbar_bg:'--topbar-bg',
+    topbar_text:'--topbar-text',
+    topbar_muted:'--topbar-muted',
+    topbar_border:'--topbar-border',
+
+    filter_bg:'--filter-bg',
+    filter_text:'--filter-text',
+    filter_border:'--filter-border',
+    filter_focus:'--filter-focus',
+
+    button_primary_bg:'--button-primary-bg',
+    button_primary_text:'--button-primary-text',
+    button_secondary_bg:'--button-secondary-bg',
+    button_secondary_text:'--button-secondary-text',
+
+    table_header_bg:'--table-header-bg',
+    table_header_text:'--table-header-text',
+    table_row_bg:'--table-row-bg',
+    table_row_alt:'--table-row-alt',
+    table_hover:'--table-hover',
+
+    footer_bg:'--footer-bg',
+    footer_text:'--footer-text',
+    footer_border:'--footer-border',
+    legend_bg:'--legend-bg',
+    legend_text:'--legend-text',
+    legend_border:'--legend-border',
+
+    chart_1:'--chart-1', chart_2:'--chart-2', chart_3:'--chart-3',
+    chart_4:'--chart-4', chart_5:'--chart-5', chart_6:'--chart-6',
+    chart_7:'--chart-7', chart_8:'--chart-8', chart_9:'--chart-9',
+    chart_10:'--chart-10', chart_11:'--chart-11', chart_12:'--chart-12'
   };
+
   return map[key] || ('--' + key.replace(/_/g,'-'));
 }
 
@@ -1003,6 +1040,18 @@ function applyMiderThemeFromSpreadsheet(rows){
   document.dispatchEvent(new CustomEvent('mider-theme-updated', {
     detail: { theme: activeTheme }
   }));
+
+  if(typeof refreshMiderVisualThemeAfterSpreadsheet === 'function'){
+    refreshMiderVisualThemeAfterSpreadsheet();
+  }
+}
+
+function refreshMiderVisualThemeAfterSpreadsheet(){
+  const styles = getComputedStyle(document.documentElement);
+  if(typeof Chart !== 'undefined'){
+    Chart.defaults.color = styles.getPropertyValue('--text').trim() || '#CBD5E1';
+    Chart.defaults.borderColor = styles.getPropertyValue('--line').trim() || 'rgba(148,163,184,.18)';
+  }
 }
 
 function initMiderTheme(config = {}){

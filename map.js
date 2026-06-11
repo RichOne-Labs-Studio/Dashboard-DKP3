@@ -1175,3 +1175,18 @@ document.addEventListener('mider-theme-updated', function(){
     renderDynamicMapLegend();
   }
 });
+
+
+
+// =====================================================
+// MIDER 2.0 - MAP THEME SYNC
+// Tidak mengubah warna polygon Kerawanan Pangan.
+// =====================================================
+document.addEventListener('mider-theme-updated', function(){
+  if(typeof renderDynamicMapLegend === 'function'){
+    renderDynamicMapLegend();
+  }
+  if(selectedMapLayer && typeof refreshMapPopup === 'function'){
+    refreshMapPopup();
+  }
+});
