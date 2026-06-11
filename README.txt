@@ -1,15 +1,12 @@
-Struktur dashboard DKP3 hasil pemisahan file
+MIDER 2.0 FASE 3 UPDATE
 
-1. index.html  : struktur tampilan halaman
-2. style.css   : seluruh style/tampilan
-3. app.js      : seluruh logika dashboard dan grafik
-4. data.json   : data indikator dashboard
+File yang diubah:
+1. style.css - tema Nusa Hijau/Nusa Malam, footer dinamis, legenda peta.
+2. index.html - container legenda peta dan footer dinamis.
+3. app.js - membaca config/tema/legenda/generated_at dari Apps Script, switch tema icon-only, footer, auto refresh.
+4. map.js - legenda Kerawanan Pangan dinamis dari data_legenda.
 
-Cara pakai:
-- Upload semua file ini dalam satu folder ke hosting.
-- Untuk update data manual, edit data.json saja.
-- Untuk tahap berikutnya, data.json bisa diganti sumbernya dari Google Sheets/API.
-
-Catatan:
-- Chart.js masih memakai CDN online. Cocok untuk sistem online.
-- Bila ingin full offline, download chart.js dan ubah script di index.html dari CDN menjadi chart.js lokal.
+Catatan penting:
+- Fungsi getRowColor() dan shouldUseSpreadsheetMapColor() tidak diubah.
+- Warna polygon Kerawanan Pangan level kelurahan tetap mengikuti kolom warna spreadsheet.
+- Apps Script disarankan tetap mengirim maintenance di root dan config.maintenance untuk kompatibilitas.
