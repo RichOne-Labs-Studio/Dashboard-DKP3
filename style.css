@@ -1902,3 +1902,311 @@ button.secondary{background:var(--panel2)!important;color:var(--text)!important;
   .mider-dynamic-footer{margin:14px;padding:12px;display:grid;grid-template-columns:1fr;}
   .mider-map-legend{left:12px;right:12px;bottom:12px;min-width:auto;}
 }
+
+
+/* =====================================================
+   MIDER 2.0 - STELLAR NUSA HIJAU THEME OVERRIDE
+   Komposisi warna: dark navy + green accent, purple,
+   yellow, red/pink, teal. Warna Kerawanan Pangan tetap
+   berasal dari spreadsheet/peta, bukan tema dashboard.
+   ===================================================== */
+
+:root,
+[data-theme="dark"]{
+  --bg:#0F111A;
+  --surface:#181824;
+  --panel:#1C1D2B;
+  --panel2:#242638;
+  --text:#F8FAFC;
+  --muted:#CBD5E1;
+  --line:#334155;
+  --blue:#38CE3C;
+  --blue2:#2EB532;
+  --green:#38CE3C;
+  --red:#FF4D6B;
+  --orange:#FFDE73;
+  --purple:#8E32E9;
+  --teal:#14B8A6;
+  --shadow:0 18px 42px rgba(0,0,0,.34);
+  --softShadow:0 10px 28px rgba(0,0,0,.24);
+}
+
+[data-theme="light"]{
+  --bg:#F5F7FA;
+  --surface:#FFFFFF;
+  --panel:#FFFFFF;
+  --panel2:#F8FAFC;
+  --text:#1F2937;
+  --muted:#64748B;
+  --line:#E2E8F0;
+  --blue:#38CE3C;
+  --blue2:#2EB532;
+  --green:#38CE3C;
+  --red:#FF4D6B;
+  --orange:#FFDE73;
+  --purple:#8E32E9;
+  --teal:#14B8A6;
+  --shadow:0 14px 34px rgba(15,17,26,.12);
+  --softShadow:0 8px 22px rgba(15,17,26,.09);
+}
+
+body{
+  background:
+    radial-gradient(circle at top left, rgba(56,206,60,.14), transparent 34%),
+    radial-gradient(circle at top right, rgba(142,50,233,.12), transparent 30%),
+    var(--bg)!important;
+  color:var(--text)!important;
+}
+
+.app-layout,
+.main-content{background:transparent!important;}
+
+.sidebar{
+  background:linear-gradient(180deg,#181824 0%, #11131F 100%)!important;
+  border-right:1px solid rgba(56,206,60,.14)!important;
+  box-shadow:10px 0 32px rgba(0,0,0,.28)!important;
+}
+
+[data-theme="light"] .sidebar{
+  background:linear-gradient(180deg,#181824 0%, #11131F 100%)!important;
+  color:#F8FAFC!important;
+}
+
+.brand h2{color:#FFFFFF!important;letter-spacing:.06em;}
+.brand span{color:#B7C4D8!important;}
+.sidebar-title{color:#7C8CA5!important;}
+
+.sidebar-menu,
+#sidebarUrusan button,
+#sidebarKategori button,
+#sidebarIndikator button{
+  color:#D8E2F0!important;
+  border:1px solid transparent!important;
+  background:transparent!important;
+}
+
+.sidebar-menu:hover,
+#sidebarUrusan button:hover,
+#sidebarKategori button:hover,
+#sidebarIndikator button:hover{
+  background:rgba(56,206,60,.09)!important;
+  color:#FFFFFF!important;
+  border-color:rgba(56,206,60,.18)!important;
+}
+
+.sidebar-menu.active,
+#sidebarUrusan button.active-filter,
+#sidebarKategori button.active-filter,
+#sidebarIndikator button.active-filter{
+  background:linear-gradient(135deg,#38CE3C,#2EB532)!important;
+  color:#08110A!important;
+  box-shadow:0 12px 24px rgba(56,206,60,.28)!important;
+}
+
+header,
+.topbar{
+  background:rgba(24,24,36,.92)!important;
+  border-bottom:1px solid rgba(56,206,60,.14)!important;
+  backdrop-filter:blur(14px);
+}
+
+[data-theme="light"] header,
+[data-theme="light"] .topbar{
+  background:rgba(255,255,255,.92)!important;
+  color:#1F2937!important;
+  border-bottom:1px solid var(--line)!important;
+}
+
+.header-title h1{color:var(--text)!important;}
+.header-title p{color:var(--muted)!important;}
+
+.hamburger,
+.theme-toggle{
+  background:rgba(56,206,60,.12)!important;
+  color:#38CE3C!important;
+  border:1px solid rgba(56,206,60,.25)!important;
+  box-shadow:none!important;
+}
+
+.header-logo{
+  background:rgba(56,206,60,.10)!important;
+  border:1px solid rgba(56,206,60,.18)!important;
+}
+
+.panel,
+.card,
+.section,
+.kpis,
+.actions{
+  background:linear-gradient(180deg,var(--panel),var(--panel2))!important;
+  color:var(--text)!important;
+  border:1px solid rgba(148,163,184,.16)!important;
+  box-shadow:var(--softShadow)!important;
+}
+
+[data-theme="light"] .panel,
+[data-theme="light"] .card,
+[data-theme="light"] .section,
+[data-theme="light"] .kpis,
+[data-theme="light"] .actions{
+  background:var(--panel)!important;
+  border:1px solid var(--line)!important;
+}
+
+.section h2{color:var(--text)!important;}
+.section h2::before{
+  background:linear-gradient(135deg,#38CE3C,#2EB532)!important;
+  color:#08110A!important;
+}
+
+.section p,
+.meta,
+.summary span{color:var(--muted)!important;}
+
+label{color:var(--text)!important;}
+
+select,
+input{
+  background:rgba(15,17,26,.80)!important;
+  color:var(--text)!important;
+  border-color:rgba(148,163,184,.30)!important;
+}
+
+[data-theme="light"] select,
+[data-theme="light"] input{
+  background:#FFFFFF!important;
+  color:#1F2937!important;
+  border-color:#D7DEE8!important;
+}
+
+select:focus,
+input:focus{
+  border-color:#38CE3C!important;
+  box-shadow:0 0 0 4px rgba(56,206,60,.18)!important;
+}
+
+button{
+  background:linear-gradient(135deg,#38CE3C,#2EB532)!important;
+  color:#08110A!important;
+  box-shadow:0 10px 22px rgba(56,206,60,.22)!important;
+}
+
+button.secondary{
+  background:rgba(142,50,233,.14)!important;
+  color:var(--text)!important;
+  border:1px solid rgba(142,50,233,.35)!important;
+}
+
+button.green{
+  background:linear-gradient(135deg,#38CE3C,#2EB532)!important;
+  color:#08110A!important;
+}
+
+.summary .card::before{
+  background:linear-gradient(135deg,#38CE3C,#2EB532)!important;
+  box-shadow:0 10px 20px rgba(56,206,60,.24)!important;
+}
+.summary .card:nth-child(2)::before{background:linear-gradient(135deg,#8E32E9,#6D28D9)!important}
+.summary .card:nth-child(3)::before{background:linear-gradient(135deg,#FFDE73,#F59E0B)!important}
+.summary .card:nth-child(4)::before{background:linear-gradient(135deg,#FF4D6B,#DC2626)!important}
+
+.summary b{color:#38CE3C!important}
+.summary .card:nth-child(2) b{color:#A855F7!important}
+.summary .card:nth-child(3) b{color:#FFDE73!important}
+.summary .card:nth-child(4) b{color:#FF4D6B!important}
+
+.kpi{
+  background:linear-gradient(180deg,var(--panel),var(--panel2))!important;
+  border:1px solid rgba(148,163,184,.16)!important;
+}
+
+.kpi:hover{
+  border-color:rgba(56,206,60,.55)!important;
+  box-shadow:0 14px 30px rgba(56,206,60,.10)!important;
+}
+
+.kpi h3{color:var(--text)!important;}
+.kpi .value{color:#38CE3C!important;}
+
+.kpi:nth-child(6n+2) .value{color:#8E32E9!important}
+.kpi:nth-child(6n+3) .value{color:#FFDE73!important}
+.kpi:nth-child(6n+4) .value{color:#FF4D6B!important}
+.kpi:nth-child(6n+5) .value{color:#14B8A6!important}
+.kpi:nth-child(6n+6) .value{color:#60A5FA!important}
+
+#kpiGrid .kpi[data-sector="pangan"] h3::before{background:linear-gradient(135deg,#38CE3C,#2EB532)!important;color:#08110A!important}
+#kpiGrid .kpi[data-sector="perikanan"] h3::before{background:linear-gradient(135deg,#14B8A6,#0F766E)!important}
+#kpiGrid .kpi[data-sector="peternakan"] h3::before{background:linear-gradient(135deg,#FFDE73,#F59E0B)!important;color:#1F2937!important}
+#kpiGrid .kpi[data-sector="ekonomi"] h3::before{background:linear-gradient(135deg,#8E32E9,#6D28D9)!important}
+#kpiGrid .kpi[data-sector="risiko"] h3::before{background:linear-gradient(135deg,#FF4D6B,#DC2626)!important}
+
+.badge{
+  background:rgba(56,206,60,.12)!important;
+  color:#38CE3C!important;
+  border:1px solid rgba(56,206,60,.25)!important;
+}
+
+.matrix th{
+  background:#181824!important;
+  color:#F8FAFC!important;
+}
+
+[data-theme="light"] .matrix th{
+  background:#181824!important;
+  color:#F8FAFC!important;
+}
+
+.matrix td{
+  background:var(--panel)!important;
+  color:var(--text)!important;
+}
+
+.matrix tr:nth-child(even) td{background:var(--panel2)!important;}
+.matrix tr:hover td{background:rgba(56,206,60,.10)!important;}
+
+#map{
+  border:1px solid rgba(56,206,60,.24)!important;
+  box-shadow:0 18px 38px rgba(0,0,0,.30)!important;
+}
+
+.mider-map-legend,
+.leaflet-control .mider-map-legend-box,
+.mider-map-legend-box{
+  background:rgba(28,29,43,.94)!important;
+  color:#F8FAFC!important;
+  border:1px solid rgba(56,206,60,.25)!important;
+  box-shadow:0 14px 28px rgba(0,0,0,.28)!important;
+  border-radius:14px!important;
+}
+
+[data-theme="light"] .mider-map-legend,
+[data-theme="light"] .leaflet-control .mider-map-legend-box,
+[data-theme="light"] .mider-map-legend-box{
+  background:rgba(255,255,255,.96)!important;
+  color:#1F2937!important;
+  border:1px solid #D7DEE8!important;
+}
+
+.mider-map-legend-title{
+  color:#38CE3C!important;
+  font-weight:900!important;
+}
+
+.mider-dynamic-footer{
+  background:rgba(24,24,36,.92)!important;
+  color:var(--text)!important;
+  border-top:1px solid rgba(56,206,60,.18)!important;
+  box-shadow:0 -8px 24px rgba(0,0,0,.18)!important;
+}
+
+[data-theme="light"] .mider-dynamic-footer{
+  background:rgba(255,255,255,.92)!important;
+  color:#1F2937!important;
+  border-top:1px solid var(--line)!important;
+}
+
+.footer{color:var(--muted)!important;}
+.trend.up{color:#38CE3C!important}
+.trend.down{color:#FF4D6B!important}
+.trend.flat{color:#FFDE73!important}
+

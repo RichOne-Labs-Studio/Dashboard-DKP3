@@ -1,11 +1,11 @@
 const DASH_CHART_COLORS = [
-  '#166534', '#16A34A', '#22C55E', '#65A30D', '#0EA5A4', '#2563EB',
-  '#F59E0B', '#DC2626', '#0F766E', '#15803D', '#0284C7', '#7C3AED'
+  '#38CE3C', '#8E32E9', '#FFDE73', '#FF4D6B', '#14B8A6', '#2563EB',
+  '#2EB532', '#A855F7', '#F97316', '#0EA5A4', '#60A5FA', '#F472B6'
 ];
 
-Chart.defaults.color = '#334155';
+Chart.defaults.color = '#CBD5E1';
 Chart.defaults.font.family = 'Inter, Segoe UI, Poppins, Arial, sans-serif';
-Chart.defaults.borderColor = 'rgba(148,163,184,.22)';
+Chart.defaults.borderColor = 'rgba(148,163,184,.18)';
 
 const DashboardColorPlugin = {
   id: 'dashboardColorPlugin',
@@ -934,12 +934,35 @@ function normalizeThemeName(value){
 }
 
 function cssVarName(name){
-  const key = String(name || '').trim().toLowerCase().replace(/\s+/g,'_');
+  const key = String(name || '').trim().toLowerCase().replace(/^--/,'').replace(/\s+/g,'_');
   const map = {
-    bg:'--bg', background:'--bg', panel:'--panel', panel2:'--panel2', surface:'--surface', sidebar:'--surface',
-    text:'--text', muted:'--muted', line:'--line', primary:'--blue', primary2:'--blue2', blue:'--blue', blue2:'--blue2',
-    green:'--green', success:'--green', red:'--red', danger:'--red', orange:'--orange', warning:'--orange',
-    purple:'--purple', teal:'--teal'
+    bg:'--bg',
+    background:'--bg',
+    surface:'--surface',
+    sidebar:'--surface',
+    panel:'--panel',
+    card:'--panel',
+    panel2:'--panel2',
+    text:'--text',
+    muted:'--muted',
+    line:'--line',
+    primary:'--blue',
+    primary2:'--blue2',
+    accent:'--blue',
+    blue:'--blue',
+    blue2:'--blue2',
+    success:'--green',
+    green:'--green',
+    danger:'--red',
+    red:'--red',
+    warning:'--orange',
+    orange:'--orange',
+    purple:'--purple',
+    violet:'--purple',
+    teal:'--teal',
+    shadow:'--shadow',
+    soft_shadow:'--softShadow',
+    radius:'--radius'
   };
   return map[key] || ('--' + key.replace(/_/g,'-'));
 }
@@ -988,7 +1011,7 @@ function initMiderTheme(config = {}){
   localStorage.removeItem('miderTheme');
 
   const saved = localStorage.getItem('mider-theme');
-  const defaultTheme = normalizeThemeName(config.default_theme || 'light');
+  const defaultTheme = normalizeThemeName(config.default_theme || 'dark');
   const active = normalizeThemeName(saved || defaultTheme);
 
   document.documentElement.setAttribute('data-theme', active);
@@ -1048,7 +1071,7 @@ function scheduleMiderAutoRefresh(config = {}){
 
 document.addEventListener('DOMContentLoaded', setupManualRefreshButton);
 document.addEventListener('DOMContentLoaded', setupMatrixTableWheelFix);
-loadDashboardData({forceRefresh:false, useCache:true});
+loadDashboardData({forceRefresh:true, useCache:false});
 
 
 
@@ -1547,3 +1570,62 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
 
 
 // ==== END MIDER 2.0 THEME FIX: legacy light-mode removed, spreadsheet theme active ====
+
+
+// =====================================================
+// MIDER 2.0 - STELLAR NUSA HIJAU THEME HARDENING
+// =====================================================
+(function(){
+  function ensureStellarFallbackStyle(){
+    if(document.getElementById('mider-stellar-fallback-theme')) return;
+
+    const style = document.createElement('style');
+    style.id = 'mider-stellar-fallback-theme';
+    style.textContent = `
+      :root,[data-theme="dark"]{
+        --bg:#0F111A;
+        --surface:#181824;
+        --panel:#1C1D2B;
+        --panel2:#242638;
+        --text:#F8FAFC;
+        --muted:#CBD5E1;
+        --line:#334155;
+        --blue:#38CE3C;
+        --blue2:#2EB532;
+        --green:#38CE3C;
+        --red:#FF4D6B;
+        --orange:#FFDE73;
+        --purple:#8E32E9;
+        --teal:#14B8A6;
+        --shadow:0 18px 42px rgba(0,0,0,.34);
+        --softShadow:0 10px 28px rgba(0,0,0,.24);
+      }
+      [data-theme="light"]{
+        --bg:#F5F7FA;
+        --surface:#FFFFFF;
+        --panel:#FFFFFF;
+        --panel2:#F8FAFC;
+        --text:#1F2937;
+        --muted:#64748B;
+        --line:#E2E8F0;
+        --blue:#38CE3C;
+        --blue2:#2EB532;
+        --green:#38CE3C;
+        --red:#FF4D6B;
+        --orange:#FFDE73;
+        --purple:#8E32E9;
+        --teal:#14B8A6;
+        --shadow:0 14px 34px rgba(15,17,26,.12);
+        --softShadow:0 8px 22px rgba(15,17,26,.09);
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  document.addEventListener('DOMContentLoaded', ensureStellarFallbackStyle);
+  document.addEventListener('mider-theme-updated', function(){
+    if(typeof renderDynamicMapLegend === 'function'){
+      renderDynamicMapLegend();
+    }
+  });
+})();

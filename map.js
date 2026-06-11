@@ -334,7 +334,7 @@ function ensureMiderPopupStyles(){
       min-width:190px;
       max-width:270px;
       line-height:1.45;
-      color:#0f172a;
+      color:var(--text,#0f172a);
       font-family:Inter, "Segoe UI", Arial, sans-serif;
     }
     .mider-popup-title{
@@ -344,7 +344,7 @@ function ensureMiderPopupStyles(){
     }
     .mider-popup-year{
       font-size:13px;
-      color:#475569;
+      color:var(--muted,#475569);
       margin-bottom:8px;
       font-weight:700;
     }
@@ -359,13 +359,13 @@ function ensureMiderPopupStyles(){
     }
     .mider-popup-item{
       font-size:13px;
-      color:#0f172a;
+      color:var(--text,#0f172a);
     }
     .mider-popup-label{
       font-weight:500;
     }
     .mider-popup-separator{
-      color:#64748b;
+      color:var(--muted,#64748b);
       margin:0 3px;
     }
     .mider-popup-item b{
@@ -375,19 +375,19 @@ function ensureMiderPopupStyles(){
       margin-top:10px;
       padding-top:6px;
       border-top:1px solid rgba(148,163,184,.25);
-      color:#64748b;
+      color:var(--muted,#64748b);
       font-size:12px;
       font-weight:600;
       cursor:pointer;
       user-select:none;
     }
     .mider-popup-toggle:hover{
-      color:#334155;
+      color:var(--text,#334155);
       text-decoration:underline;
     }
     .mider-popup-empty{
       font-size:12px;
-      color:#64748b;
+      color:var(--muted,#64748b);
     }
   `;
   document.head.appendChild(style);
@@ -1162,3 +1162,16 @@ document.addEventListener('DOMContentLoaded', function(){
 
 // Render awal legenda setelah seluruh script dimuat.
 setTimeout(function(){ scheduleDynamicMapLegendRender(8); }, 500);
+
+
+// =====================================================
+// MIDER 2.0 - THEME REFRESH FOR MAP
+// =====================================================
+document.addEventListener('mider-theme-updated', function(){
+  if(typeof forceRefreshMapStyles === 'function'){
+    forceRefreshMapStyles();
+  }
+  if(typeof renderDynamicMapLegend === 'function'){
+    renderDynamicMapLegend();
+  }
+});
