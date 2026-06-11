@@ -103,21 +103,17 @@ function getWilayahName(feature){
   if(activeMapLevel === 'kelurahan'){
     return String(
       props.village ||
+      props.VILLAGE ||
       props.kelurahan ||
       props.KELURAHAN ||
-      props.KEL ||
-      props.DESA ||
-      props.desa ||
-      props.KEL_DESA ||
-      props.KELURAHAN_DESA ||
       props.WADMKD ||
       props.NAMOBJ ||
-      props.NAMOBJ_DESA ||
-      props.NAMOBJ_KEL ||
+      props.NAMDES ||
+      props.DESA ||
+      props.KEL_DESA ||
+      props.KEL ||
       props.nama_kelurahan ||
       props.NAMA_KELURAHAN ||
-      props.nama_desa ||
-      props.NAMA_DESA ||
       props.nama ||
       props.NAMA ||
       props.name ||
@@ -131,12 +127,6 @@ function getWilayahName(feature){
     props.kecamatan ||
     props.KECAMATAN ||
     props.WADMKC ||
-    props.NAMKEC ||
-    props.NAMOBJ_KEC ||
-    props.nama_kec ||
-    props.nama_kecamatan ||
-    props.NAMA_KEC ||
-    props.NAMA_KECAMATAN ||
     props.nama ||
     props.NAMA ||
     props.NAMOBJ ||
@@ -159,9 +149,6 @@ function getFeatureKecamatan(feature){
     props.WADMKC ||
     props.NAMKEC ||
     props.NAMOBJ_KEC ||
-    props.WADMKC_1 ||
-    props.KEC ||
-    props.kec ||
     props.nama_kec ||
     props.nama_kecamatan ||
     props.NAMA_KEC ||
@@ -175,9 +162,9 @@ function getFeatureKecamatan(feature){
 
   if(activeMapLevel === 'kelurahan'){
     const namaKelurahan = getWilayahName(feature);
-    const rowsSource = window.MAP_DATA || MAP_DATA || [];
+    const rowsSource = getMapDataRows();
     const matched = rowsSource.find(d =>
-      mapTextMatches(d.kelurahan, namaKelurahan) &&
+      sameText(d.kelurahan, namaKelurahan) &&
       d.kecamatan
     );
 
@@ -233,23 +220,35 @@ function normalizeText(value){
   return String(value || '')
     .trim()
     .toLowerCase()
-    .replace(/[._-]+/g, ' ')
-    .replace(/\b(kelurahan|kel\.?|desa|kec\.?|kecamatan)\b/g, '')
-    .replace(/[^a-z0-9\s]/g, '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, ' dan ')
+    .replace(/\b(kelurahan|kel\.?|desa|kec\.?|kecamatan)\b/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-function mapTextMatches(a, b){
-  const na = normalizeText(a);
-  const nb = normalizeText(b);
+function sameText(a, b){
+  return normalizeText(a) === normalizeText(b);
+}
 
-  if(!na || !nb) return false;
-  if(na === nb) return true;
+function getMapDataRows(){
+  return window.MAP_DATA || MAP_DATA || [];
+}
 
-  // Toleransi variasi nama GeoJSON/spreadsheet:
-  // "Kel. Larangan", "Kelurahan Larangan", dan "Larangan" dianggap sama.
-  return na.includes(nb) || nb.includes(na);
+function getFeatureIdentity(featureOrName){
+  if(featureOrName && featureOrName.properties){
+    return {
+      wilayah: getWilayahName(featureOrName),
+      kecamatan: getFeatureKecamatan(featureOrName)
+    };
+  }
+
+  return {
+    wilayah: String(featureOrName || '').trim(),
+    kecamatan: ''
+  };
 }
 
 function getBestStyleRow(namaWilayah){
@@ -277,8 +276,11 @@ function getBestStyleRow(namaWilayah){
   return sorted[0] || null;
 }
 
-function getMatchingRows(namaWilayah){
-  const rowsSource = window.MAP_DATA || MAP_DATA || [];
+function getMatchingRows(featureOrName){
+  const rowsSource = getMapDataRows();
+  const identity = getFeatureIdentity(featureOrName);
+  const namaWilayah = identity.wilayah;
+  const featureKecamatan = identity.kecamatan;
 
   const tahun = document.getElementById('mapYearFilter')?.value || 'all';
   const kategori = document.getElementById('mapKategoriFilter')?.value || activeMapKategori || 'all';
@@ -286,23 +288,60 @@ function getMatchingRows(namaWilayah){
 
   let rows = rowsSource.filter(d =>
     (tahun === 'all' || String(d.tahun) === String(tahun)) &&
-    (kategori === 'all' || String(d.kategori || '') === String(kategori)) &&
-    (indikator === 'all' || String(d.indikator || '') === String(indikator))
+    (kategori === 'all' || sameText(d.kategori, kategori)) &&
+    (indikator === 'all' || sameText(d.indikator, indikator))
   );
 
   if(activeMapLevel === 'kelurahan'){
     rows = rows.filter(d => {
-      const kelurahanMatch = mapTextMatches(d.kelurahan, namaWilayah);
-      const kecamatanMatch = activeMapKecamatan === 'all' || mapTextMatches(d.kecamatan, activeMapKecamatan);
-      const activeKelurahanMatch = activeMapKelurahan === 'all' || mapTextMatches(d.kelurahan, activeMapKelurahan);
-      return kelurahanMatch && kecamatanMatch && activeKelurahanMatch;
+      const kelurahanMatch = sameText(d.kelurahan, namaWilayah);
+      const kecamatanMatch =
+        !featureKecamatan ||
+        !d.kecamatan ||
+        sameText(d.kecamatan, featureKecamatan);
+      const activeKecamatanMatch =
+        activeMapKecamatan === 'all' ||
+        sameText(d.kecamatan, activeMapKecamatan) ||
+        sameText(featureKecamatan, activeMapKecamatan);
+      const activeKelurahanMatch =
+        activeMapKelurahan === 'all' ||
+        sameText(d.kelurahan, activeMapKelurahan) ||
+        sameText(namaWilayah, activeMapKelurahan);
+
+      return kelurahanMatch && kecamatanMatch && activeKecamatanMatch && activeKelurahanMatch;
     });
   }else{
-    rows = rows.filter(d => mapTextMatches(d.kecamatan, namaWilayah));
+    rows = rows.filter(d => sameText(d.kecamatan, namaWilayah));
+  }
+
+  // Fallback khusus layer kelurahan: jika indikator exact tidak cocok tetapi kategori
+  // Kerawanan Pangan sudah dipilih, tetap ambil baris Kerawanan Pangan kelurahan.
+  // Ini mengatasi perbedaan kecil teks indikator antara spreadsheet dan dropdown.
+  if(!rows.length && activeMapLevel === 'kelurahan' && shouldUseSpreadsheetMapColor()){
+    rows = rowsSource.filter(d => {
+      const tahunMatch = tahun === 'all' || String(d.tahun) === String(tahun);
+      const kelurahanMatch = sameText(d.kelurahan, namaWilayah);
+      const kecamatanMatch =
+        !featureKecamatan ||
+        !d.kecamatan ||
+        sameText(d.kecamatan, featureKecamatan);
+      const kategoriKerawanan = normalizeText(d.kategori).includes('kerawanan pangan');
+      const activeKecamatanMatch =
+        activeMapKecamatan === 'all' ||
+        sameText(d.kecamatan, activeMapKecamatan) ||
+        sameText(featureKecamatan, activeMapKecamatan);
+      const activeKelurahanMatch =
+        activeMapKelurahan === 'all' ||
+        sameText(d.kelurahan, activeMapKelurahan) ||
+        sameText(namaWilayah, activeMapKelurahan);
+
+      return tahunMatch && kelurahanMatch && kecamatanMatch && kategoriKerawanan && activeKecamatanMatch && activeKelurahanMatch;
+    });
   }
 
   return rows;
 }
+
 function escapePopupHtml(value){
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -509,7 +548,7 @@ function defaultStyle(feature){
   // Pada layer kelurahan, warna spreadsheet hanya dipakai saat filter tematik
   // Kerawanan Pangan aktif. Jika filter masih umum atau warna = default/kosong,
   // polygon kelurahan mengikuti warna kecamatan induknya.
-  const matched = shouldUseSpreadsheetMapColor() ? getBestStyleRow(nama) : null;
+  const matched = shouldUseSpreadsheetMapColor() ? getBestStyleRow(feature) : null;
   const fill = getRowColor(matched, fallbackColor);
 
   // Layer Kelurahan: jika filter Kecamatan/Kelurahan aktif,
@@ -526,11 +565,11 @@ function defaultStyle(feature){
 
     const matchKecamatan =
       !isKecamatanFiltered ||
-      mapTextMatches(featureKecamatan, kecamatanAktif);
+      sameText(featureKecamatan, kecamatanAktif);
 
     const matchKelurahan =
       !isKelurahanFiltered ||
-      mapTextMatches(namaKelurahan, kelurahanAktif);
+      sameText(namaKelurahan, kelurahanAktif);
 
     const isActiveArea = matchKecamatan && matchKelurahan;
 
@@ -589,11 +628,11 @@ function getFilteredRowsForMapControls(){
 
   if(activeMapLevel === 'kelurahan'){
     if(activeMapKecamatan !== 'all'){
-      rows = rows.filter(d => mapTextMatches(d.kecamatan, activeMapKecamatan));
+      rows = rows.filter(d => sameText(d.kecamatan, activeMapKecamatan));
     }
 
     if(activeMapKelurahan !== 'all'){
-      rows = rows.filter(d => mapTextMatches(d.kelurahan, activeMapKelurahan));
+      rows = rows.filter(d => sameText(d.kelurahan, activeMapKelurahan));
     }
   }
 
@@ -681,7 +720,7 @@ function updateMapIndikatorFilter(){
 
   const filtered = rows.filter(d =>
     selectedKategori === 'all' ||
-    String(d.kategori || '') === String(selectedKategori)
+    sameText(d.kategori, selectedKategori)
   );
 
   i.innerHTML = '<option value="all">Semua Indikator</option>' +
@@ -698,7 +737,7 @@ function updateMapVisualHighlight(){
 
   if(selectedMapLayer && geoJsonLayer){
     const nama = getWilayahName(selectedMapLayer.feature);
-    const rows = getMatchingRows(nama);
+    const rows = getMatchingRows(selectedMapLayer.feature);
 
     // Jika wilayah yang sebelumnya dipilih sudah tidak sesuai filter,
     // hilangkan pilihan agar tampilan peta mengikuti filter baru.
@@ -727,7 +766,7 @@ function forceRefreshMapStyles(){
 
   if(selectedMapLayer && selectedMapLayer.feature){
     const nama = getWilayahName(selectedMapLayer.feature);
-    const rows = getMatchingRows(nama);
+    const rows = getMatchingRows(selectedMapLayer.feature);
 
     if(rows.length){
       selectedMapLayer.setStyle(selectedStyle(selectedMapLayer.feature));
