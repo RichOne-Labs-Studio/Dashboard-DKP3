@@ -466,6 +466,11 @@ function render(){
 
   renderKPIs(displayRows);
   renderCharts(displayRows);
+
+  if(typeof refreshMiderVisualThemeAfterSpreadsheet === 'function'){
+    refreshMiderVisualThemeAfterSpreadsheet();
+  }
+
   renderInsights(displayRows);
   renderTable(displayRows);
 
@@ -1130,16 +1135,7 @@ function refreshMiderVisualThemeAfterSpreadsheet(){
       Chart.defaults.plugins.legend.labels.color = textColor;
     }
 
-    Chart.defaults.scales = {
-      x: {
-        ticks: { color: mutedColor },
-        grid: { color: lineColor }
-      },
-      y: {
-        ticks: { color: mutedColor },
-        grid: { color: lineColor }
-      }
-    };
+    // Jangan override Chart.defaults.scales di Chart.js v4 karena dapat memicu recursion error.
   }
 
   function applyChartTheme(chart){
@@ -1755,61 +1751,3 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
 
 // ==== END MIDER 2.0 THEME FIX: legacy light-mode removed, spreadsheet theme active ====
 
-
-// =====================================================
-// MIDER 2.0 - STELLAR NUSA HIJAU THEME HARDENING
-// =====================================================
-(function(){
-  function ensureStellarFallbackStyle(){
-    if(document.getElementById('mider-stellar-fallback-theme')) return;
-
-    const style = document.createElement('style');
-    style.id = 'mider-stellar-fallback-theme';
-    style.textContent = `
-      :root,[data-theme="dark"]{
-        --bg:#0F111A;
-        --surface:#181824;
-        --panel:#1C1D2B;
-        --panel2:#242638;
-        --text:#F8FAFC;
-        --muted:#CBD5E1;
-        --line:#334155;
-        --blue:#38CE3C;
-        --blue2:#2EB532;
-        --green:#38CE3C;
-        --red:#FF4D6B;
-        --orange:#FFDE73;
-        --purple:#8E32E9;
-        --teal:#14B8A6;
-        --shadow:0 18px 42px rgba(0,0,0,.34);
-        --softShadow:0 10px 28px rgba(0,0,0,.24);
-      }
-      [data-theme="light"]{
-        --bg:#F5F7FA;
-        --surface:#FFFFFF;
-        --panel:#FFFFFF;
-        --panel2:#F8FAFC;
-        --text:#1F2937;
-        --muted:#64748B;
-        --line:#E2E8F0;
-        --blue:#38CE3C;
-        --blue2:#2EB532;
-        --green:#38CE3C;
-        --red:#FF4D6B;
-        --orange:#FFDE73;
-        --purple:#8E32E9;
-        --teal:#14B8A6;
-        --shadow:0 14px 34px rgba(15,17,26,.12);
-        --softShadow:0 8px 22px rgba(15,17,26,.09);
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  document.addEventListener('DOMContentLoaded', ensureStellarFallbackStyle);
-  document.addEventListener('mider-theme-updated', function(){
-    if(typeof renderDynamicMapLegend === 'function'){
-      renderDynamicMapLegend();
-    }
-  });
-})();
