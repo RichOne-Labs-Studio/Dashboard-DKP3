@@ -511,9 +511,17 @@ function defaultStyle(feature){
       };
     }
 
+    const isKerawananKelurahan =
+      activeMapLevel === 'kelurahan' &&
+      shouldUseSpreadsheetMapColor();
+
     return {
-      color: fill,
-      weight: isKelurahanFiltered ? 4 : 2.5,
+      // Khusus Kerawanan Pangan level Kelurahan:
+      // garis batas dibuat putih dan lebih tebal agar batas antar kelurahan jelas.
+      color: isKerawananKelurahan ? '#FFFFFF' : fill,
+      weight: isKerawananKelurahan
+        ? (isKelurahanFiltered ? 5 : 3)
+        : (isKelurahanFiltered ? 4 : 2.5),
       fillColor: fill,
       fillOpacity: isKecamatanFiltered || isKelurahanFiltered ? 0.72 : 0.38,
       opacity: 1
@@ -532,22 +540,32 @@ function defaultStyle(feature){
 function hoverStyle(feature){
   const base = defaultStyle(feature);
 
+  const isKerawananKelurahan =
+    activeMapLevel === 'kelurahan' &&
+    shouldUseSpreadsheetMapColor();
+
   return {
-    color: base.color,
-    weight: 3,
+    // Hover khusus Kerawanan Pangan Kelurahan dibuat kuning agar terlihat jelas.
+    color: isKerawananKelurahan ? '#FACC15' : base.color,
+    weight: isKerawananKelurahan ? 5 : 3,
     fillColor: base.fillColor,
-    fillOpacity: 0.55
+    fillOpacity: isKerawananKelurahan ? 0.60 : 0.55
   };
 }
 
 function selectedStyle(feature){
   const base = defaultStyle(feature);
 
+  const isKerawananKelurahan =
+    activeMapLevel === 'kelurahan' &&
+    shouldUseSpreadsheetMapColor();
+
   return {
-    color: base.color,
-    weight: 4,
+    // Kelurahan yang dipilih diberi outline gelap tebal.
+    color: isKerawananKelurahan ? '#111827' : base.color,
+    weight: isKerawananKelurahan ? 6 : 4,
     fillColor: base.fillColor,
-    fillOpacity: 0.70
+    fillOpacity: isKerawananKelurahan ? 0.75 : 0.70
   };
 }
 
