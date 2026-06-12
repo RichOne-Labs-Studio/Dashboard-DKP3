@@ -185,6 +185,36 @@ function getRowColor(row, fallback){
 }
 
 
+function darkenMapHexColor(color, percent = 30){
+  const text = String(color || '').trim();
+
+  if(!/^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(text)){
+    return text || '#334155';
+  }
+
+  let hex = text.replace('#','');
+
+  if(hex.length === 3){
+    hex = hex.split('').map(ch => ch + ch).join('');
+  }
+
+  const factor = Math.max(0, Math.min(100, 100 - percent)) / 100;
+
+  const r = Math.max(0, Math.min(255, Math.round(parseInt(hex.slice(0,2), 16) * factor)));
+  const g = Math.max(0, Math.min(255, Math.round(parseInt(hex.slice(2,4), 16) * factor)));
+  const b = Math.max(0, Math.min(255, Math.round(parseInt(hex.slice(4,6), 16) * factor)));
+
+  return '#' +
+    r.toString(16).padStart(2,'0') +
+    g.toString(16).padStart(2,'0') +
+    b.toString(16).padStart(2,'0');
+}
+
+function getKerawananKelurahanBoundaryColor(fillColor){
+  return darkenMapHexColor(fillColor, 34);
+}
+
+
 function shouldUseSpreadsheetMapColor(){
   // Warna khusus dari spreadsheet hanya dipakai saat user memilih
   // kategori/indikator tematik yang memang punya pewarnaan sendiri.
@@ -517,10 +547,10 @@ function defaultStyle(feature){
 
     return {
       // Khusus Kerawanan Pangan level Kelurahan:
-      // garis batas dibuat putih dan lebih tebal agar batas antar kelurahan jelas.
-      color: isKerawananKelurahan ? '#FFFFFF' : fill,
+      // garis batas mengikuti warna isi polygon, tetapi dibuat lebih tua agar batas antar kelurahan tetap jelas.
+      color: isKerawananKelurahan ? getKerawananKelurahanBoundaryColor(fill) : fill,
       weight: isKerawananKelurahan
-        ? (isKelurahanFiltered ? 5 : 3)
+        ? (isKelurahanFiltered ? 4 : 2.4)
         : (isKelurahanFiltered ? 4 : 2.5),
       fillColor: fill,
       fillOpacity: isKecamatanFiltered || isKelurahanFiltered ? 0.72 : 0.38,
@@ -538,18 +568,19 @@ function defaultStyle(feature){
 }
 
 function hoverStyle(feature){
+  // Khusus Kerawanan Pangan level Kelurahan tidak memakai efek hover,
+  // agar tampilan batas wilayah tetap stabil dan tidak mengganggu pembacaan peta.
+  if(activeMapLevel === 'kelurahan' && shouldUseSpreadsheetMapColor()){
+    return defaultStyle(feature);
+  }
+
   const base = defaultStyle(feature);
 
-  const isKerawananKelurahan =
-    activeMapLevel === 'kelurahan' &&
-    shouldUseSpreadsheetMapColor();
-
   return {
-    // Hover khusus Kerawanan Pangan Kelurahan dibuat kuning agar terlihat jelas.
-    color: isKerawananKelurahan ? '#FACC15' : base.color,
-    weight: isKerawananKelurahan ? 5 : 3,
+    color: base.color,
+    weight: 3,
     fillColor: base.fillColor,
-    fillOpacity: isKerawananKelurahan ? 0.60 : 0.55
+    fillOpacity: 0.55
   };
 }
 
@@ -561,11 +592,12 @@ function selectedStyle(feature){
     shouldUseSpreadsheetMapColor();
 
   return {
-    // Kelurahan yang dipilih diberi outline gelap tebal.
-    color: isKerawananKelurahan ? '#111827' : base.color,
-    weight: isKerawananKelurahan ? 6 : 4,
+    // Saat dipilih, Kerawanan Pangan Kelurahan mengikuti pola highlight layer lain:
+    // outline dibuat lebih tebal dengan warna batas yang tetap selaras dengan warna kelurahan.
+    color: isKerawananKelurahan ? getKerawananKelurahanBoundaryColor(base.fillColor) : base.color,
+    weight: isKerawananKelurahan ? 4.5 : 4,
     fillColor: base.fillColor,
-    fillOpacity: isKerawananKelurahan ? 0.75 : 0.70
+    fillOpacity: isKerawananKelurahan ? 0.78 : 0.70
   };
 }
 
