@@ -274,7 +274,10 @@ function getChartYears(){
       ? Math.max(...years.map(Number))
       : Number(yearEl.value);
 
-  return years.filter(y => Number(y) <= selectedYear);
+  // Label chart dipaksa menjadi teks tahun agar Chart.js tidak menampilkan indeks 1-5.
+  return years
+    .filter(y => Number(y) <= selectedYear)
+    .map(y => String(y));
 }
 
 function makeDatasets(rows, inds){
@@ -301,6 +304,33 @@ function makeDatasets(rows, inds){
   }));
 } 
 
+function getMiderChartThemeStyle(){
+  const styles = getComputedStyle(document.documentElement);
+
+  return {
+    textColor: styles.getPropertyValue('--text').trim() || '#F8FAFC',
+    mutedColor: styles.getPropertyValue('--muted').trim() || '#64748B',
+    lineColor: styles.getPropertyValue('--line').trim() || 'rgba(148,163,184,.18)'
+  };
+}
+
+function applyMiderScaleTheme(scales){
+  const theme = getMiderChartThemeStyle();
+  const output = Object.assign({}, scales || {});
+
+  ['x','y'].forEach(function(axis){
+    output[axis] = Object.assign({}, output[axis] || {});
+    output[axis].ticks = Object.assign({}, output[axis].ticks || {}, {
+      color: theme.mutedColor
+    });
+    output[axis].grid = Object.assign({}, output[axis].grid || {}, {
+      color: theme.lineColor
+    });
+  });
+
+  return output;
+}
+
 function renderCharts(rows){
  if(mainChart) mainChart.destroy();
  if(barChart) barChart.destroy();
@@ -311,13 +341,13 @@ if(isExecutiveDashboardMode()) inds = inds.filter(isExecutiveIndicator);
 
  const mainCanvas=document.getElementById('mainChart');
  if(mainCanvas){
-  mainChart=new Chart(mainCanvas,{type:'line',data:{labels:getChartYears(),datasets:makeDatasets(rows,inds)},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:false}}}});
+  mainChart=new Chart(mainCanvas,{type:'line',data:{labels:getChartYears(),datasets:makeDatasets(rows,inds)},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:getMiderChartThemeStyle().textColor}}},scales:applyMiderScaleTheme({x:{stacked:true},y:{stacked:true,beginAtZero:false}})}});
  }
  const barCanvas=document.getElementById('barChart');
  if(barCanvas){
   const selectedYear=getSelectedDashboardYear()==='all'?Math.max(...years.map(Number)):Number(getSelectedDashboardYear());
   const vals=inds.map(ind=>({label:ind.indikator.substring(0,35),v:rows.find(d=>d.tahun===selectedYear&&d.kode===ind.kode&&d.urusan===ind.urusan&&d.kategori===ind.kategori)?.nilai??null})).filter(x=>x.v!=null).sort((a,b)=>b.v-a.v).slice(0,15);
-  barChart=new Chart(barCanvas,{type:'bar',data:{labels:vals.map(x=>x.label),datasets:[{label:'Nilai '+selectedYear,data:vals.map(x=>x.v)}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}}}});
+  barChart=new Chart(barCanvas,{type:'bar',data:{labels:vals.map(x=>x.label),datasets:[{label:'Nilai '+selectedYear,data:vals.map(x=>x.v)}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:applyMiderScaleTheme({x:{beginAtZero:true},y:{}})}});
  }
  renderMiniCharts(rows,inds);
 }
@@ -360,7 +390,7 @@ function renderMiniCharts(rows,inds){
         maintainAspectRatio:false,
         interaction:{mode:'index',intersect:false},
         plugins:{legend:{display:false}},
-        scales:{x:{stacked:true},y:{stacked:true,beginAtZero:false}}
+        scales:applyMiderScaleTheme({x:{stacked:true},y:{stacked:true,beginAtZero:false}})
       }
     }));
   });
@@ -1116,55 +1146,21 @@ function applyMiderThemeFromApi(rawData){
 }
 
 function refreshMiderVisualThemeAfterSpreadsheet(){
-  const styles = getComputedStyle(document.documentElement);
-
-  const textColor =
-    styles.getPropertyValue('--text').trim() || '#1F2937';
-
-  const mutedColor =
-    styles.getPropertyValue('--muted').trim() || '#64748B';
-
-  const lineColor =
-    styles.getPropertyValue('--line').trim() || '#E2E8F0';
+  const theme = getMiderChartThemeStyle();
 
   if(typeof Chart !== 'undefined'){
-    Chart.defaults.color = mutedColor;
-    Chart.defaults.borderColor = lineColor;
+    Chart.defaults.color = theme.mutedColor;
+    Chart.defaults.borderColor = theme.lineColor;
 
     if(Chart.defaults.plugins && Chart.defaults.plugins.legend && Chart.defaults.plugins.legend.labels){
-      Chart.defaults.plugins.legend.labels.color = textColor;
+      Chart.defaults.plugins.legend.labels.color = theme.textColor;
     }
-
-    // Jangan override Chart.defaults.scales di Chart.js v4 karena dapat memicu recursion error.
   }
 
-  function applyChartTheme(chart){
-    if(!chart || !chart.options) return;
-
-    chart.options.plugins = chart.options.plugins || {};
-    chart.options.plugins.legend = chart.options.plugins.legend || {};
-    chart.options.plugins.legend.labels = chart.options.plugins.legend.labels || {};
-    chart.options.plugins.legend.labels.color = textColor;
-
-    chart.options.scales = chart.options.scales || {};
-
-    ['x','y'].forEach(function(axis){
-      chart.options.scales[axis] = chart.options.scales[axis] || {};
-      chart.options.scales[axis].ticks = chart.options.scales[axis].ticks || {};
-      chart.options.scales[axis].grid = chart.options.scales[axis].grid || {};
-      chart.options.scales[axis].ticks.color = mutedColor;
-      chart.options.scales[axis].grid.color = lineColor;
-    });
-
-    chart.update();
-  }
-
-  applyChartTheme(mainChart);
-  applyChartTheme(barChart);
-
-  if(Array.isArray(miniCharts)){
-    miniCharts.forEach(applyChartTheme);
-  }
+  // Catatan penting:
+  // Jangan mengubah chart.options.scales dan jangan memanggil chart.update() di fungsi ini.
+  // Pada Chart.js v4, perubahan langsung pada options scale setelah chart dirender
+  // dapat memicu error: Recursion detected: _scriptable->_scriptable.
 }
 
 function initMiderTheme(config = {}){
