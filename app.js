@@ -1112,9 +1112,62 @@ function applyMiderThemeFromApi(rawData){
 
 function refreshMiderVisualThemeAfterSpreadsheet(){
   const styles = getComputedStyle(document.documentElement);
+
+  const textColor =
+    styles.getPropertyValue('--text').trim() || '#1F2937';
+
+  const mutedColor =
+    styles.getPropertyValue('--muted').trim() || '#64748B';
+
+  const lineColor =
+    styles.getPropertyValue('--line').trim() || '#E2E8F0';
+
   if(typeof Chart !== 'undefined'){
-    Chart.defaults.color = styles.getPropertyValue('--text').trim() || '#CBD5E1';
-    Chart.defaults.borderColor = styles.getPropertyValue('--line').trim() || 'rgba(148,163,184,.18)';
+    Chart.defaults.color = mutedColor;
+    Chart.defaults.borderColor = lineColor;
+
+    if(Chart.defaults.plugins && Chart.defaults.plugins.legend && Chart.defaults.plugins.legend.labels){
+      Chart.defaults.plugins.legend.labels.color = textColor;
+    }
+
+    Chart.defaults.scales = {
+      x: {
+        ticks: { color: mutedColor },
+        grid: { color: lineColor }
+      },
+      y: {
+        ticks: { color: mutedColor },
+        grid: { color: lineColor }
+      }
+    };
+  }
+
+  function applyChartTheme(chart){
+    if(!chart || !chart.options) return;
+
+    chart.options.plugins = chart.options.plugins || {};
+    chart.options.plugins.legend = chart.options.plugins.legend || {};
+    chart.options.plugins.legend.labels = chart.options.plugins.legend.labels || {};
+    chart.options.plugins.legend.labels.color = textColor;
+
+    chart.options.scales = chart.options.scales || {};
+
+    ['x','y'].forEach(function(axis){
+      chart.options.scales[axis] = chart.options.scales[axis] || {};
+      chart.options.scales[axis].ticks = chart.options.scales[axis].ticks || {};
+      chart.options.scales[axis].grid = chart.options.scales[axis].grid || {};
+      chart.options.scales[axis].ticks.color = mutedColor;
+      chart.options.scales[axis].grid.color = lineColor;
+    });
+
+    chart.update();
+  }
+
+  applyChartTheme(mainChart);
+  applyChartTheme(barChart);
+
+  if(Array.isArray(miniCharts)){
+    miniCharts.forEach(applyChartTheme);
   }
 }
 
@@ -1141,6 +1194,7 @@ function initMiderTheme(config = {}){
         localStorage.setItem('mider-theme', next);
 
         applyMiderThemeFromApi(window.MIDER_RAW_DATA || {});
+        refreshMiderVisualThemeAfterSpreadsheet();
         btn.textContent = next === 'dark' ? '☀️' : '🌙';
         btn.title = next === 'dark' ? 'Ganti ke tema terang' : 'Ganti ke tema gelap';
 

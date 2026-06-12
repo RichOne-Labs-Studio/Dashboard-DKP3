@@ -316,3 +316,68 @@ header,.topbar{position:sticky;top:0;z-index:900;min-height:82px;padding:16px 28
     min-height:500px!important;
   }
 }
+
+/* =====================================================
+   MAP DESKTOP FRAME FIX
+   Jarak dan frame peta berlaku untuk desktop dan mobile.
+   Tidak mengubah warna tema; tetap memakai variabel spreadsheet.
+   ===================================================== */
+
+#mapLayer .section{
+  margin-bottom:22px!important;
+  border-radius:18px!important;
+}
+
+#mapLayer > .card,
+#mapLayer .card:has(#map){
+  margin-top:22px!important;
+  padding:14px!important;
+  border-radius:22px!important;
+  border:1px solid var(--line)!important;
+  background:var(--panel)!important;
+  box-shadow:var(--softShadow)!important;
+  overflow:hidden!important;
+}
+
+#map{
+  display:block!important;
+  margin:0!important;
+  width:100%!important;
+  height:560px!important;
+  min-height:560px!important;
+  border-radius:18px!important;
+  overflow:hidden!important;
+  border:1px solid var(--line)!important;
+  box-shadow:none!important;
+}
+
+.leaflet-container{
+  width:100%!important;
+  height:100%!important;
+  border-radius:18px!important;
+}
+
+@media(max-width:768px){
+  #mapLayer .section{
+    margin-bottom:22px!important;
+  }
+
+  #mapLayer > .card,
+  #mapLayer .card:has(#map){
+    margin-top:22px!important;
+    padding:12px!important;
+    border-radius:20px!important;
+  }
+
+  #map{
+    height:520px!important;
+    min-height:520px!important;
+  }
+}
+
+@media(max-width:420px){
+  #map{
+    height:500px!important;
+    min-height:500px!important;
+  }
+}
