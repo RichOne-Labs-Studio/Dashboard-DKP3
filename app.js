@@ -82,7 +82,7 @@ const EXECUTIVE_KPI = [
     indikator: 'Prevalence of Undernourishment'
   },
   {
-    indikator: 'Kontribusi PDRB'
+    indikator: 'Persentase PDRB dari Sektor Pertanian dan Perikanan'
   }
 ];
 
