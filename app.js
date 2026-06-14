@@ -83,9 +83,6 @@ const EXECUTIVE_KPI = [
   },
   {
     indikator: 'Kontribusi PDRB'
-  },
-  {
-    indikator: 'Kontribusi PDRB'
   }
 ];
 
