@@ -32,7 +32,7 @@
   --sidebar-bg:#08111F;
   --sidebar-text:#C9D4E5;
   --sidebar-title:#22C55E;
-  --sidebar-hover:#12223A;
+  --sidebar-hover:transparent;
   --sidebar-active-bg:transparent;
   --sidebar-active-text:#38CE3C;
   --sidebar-active-line:#38CE3C;
@@ -96,7 +96,7 @@
   --sidebar-bg:#FFFFFF;
   --sidebar-text:#334155;
   --sidebar-title:#2563EB;
-  --sidebar-hover:#F1F5F9;
+  --sidebar-hover:transparent;
   --sidebar-active-bg:transparent;
   --sidebar-active-text:#1D4ED8;
   --sidebar-active-line:#2563EB;
