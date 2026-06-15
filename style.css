@@ -32,10 +32,10 @@
   --sidebar-bg:#08111F;
   --sidebar-text:#C9D4E5;
   --sidebar-title:#22C55E;
-  --sidebar-hover:transparent;
-  --sidebar-active-bg:transparent;
-  --sidebar-active-text:#38CE3C;
-  --sidebar-active-line:#38CE3C;
+  --sidebar-hover:#12223A;
+  --sidebar-active-bg:#123B2B;
+  --sidebar-active-text:#FFFFFF;
+  --sidebar-active-line:#22C55E;
   --sidebar-border:#24324A;
   --topbar-bg:#111827;
   --topbar-text:#FFFFFF;
@@ -96,8 +96,8 @@
   --sidebar-bg:#FFFFFF;
   --sidebar-text:#334155;
   --sidebar-title:#2563EB;
-  --sidebar-hover:transparent;
-  --sidebar-active-bg:transparent;
+  --sidebar-hover:#F1F5F9;
+  --sidebar-active-bg:#E8F1FF;
   --sidebar-active-text:#1D4ED8;
   --sidebar-active-line:#2563EB;
   --sidebar-border:#E2E8F0;
