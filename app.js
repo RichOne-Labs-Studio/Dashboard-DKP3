@@ -1312,13 +1312,8 @@ function scheduleSmartKpiIcons(){
   });
 }
 
-function applySmartKpiIconsAfterRender(){
-  requestAnimationFrame(()=>{
-    requestAnimationFrame(()=>{
-      applySmartKpiIcons();
-    });
-  });
-}
+setTimeout(scheduleSmartKpiIcons, 300);
+setTimeout(scheduleSmartKpiIcons, 1000);
 
 /* HEADER AUTO-HIDE KHUSUS MOBILE */
 (function(){
@@ -1408,7 +1403,6 @@ function showLayer(layerId, shouldReset = true){
     document.querySelector('.sidebar-menu:nth-of-type(1)').classList.add('active');
     populateSidebarMenu('dashboard');
     render();
-	applySmartKpiIconsAfterRender();
   }
 
   if(layerId === 'mapLayer'){
@@ -1474,7 +1468,7 @@ function setKecamatanFilter(kecamatan){
 selectedKecamatan = kecamatan;
 
 render();
-applySmartKpiIconsAfterRender();
+
 showLayer('dashboardLayer', false);
 
 }
@@ -1483,7 +1477,7 @@ function resetKecamatanFilter(){
 selectedKecamatan = null;
 
 render();
-applySmartKpiIconsAfterRender();
+
 }
 document.addEventListener('DOMContentLoaded', function(){
   const toggle = document.getElementById('toggleSidebar');
@@ -1647,7 +1641,6 @@ function pilihUrusanSidebar(urusan, mode = 'dashboard'){
     kategoriFilter.value = 'all';
     searchFilter.value = '';
     render();
-	applySmartKpiIconsAfterRender();
   }
 
   showLayer('dashboardLayer', false);
@@ -1696,7 +1689,6 @@ function pilihKategoriSidebar(kategori, mode = 'dashboard'){
     filter.value = kategori;
     searchFilter.value = '';
     render();
-	applySmartKpiIconsAfterRender();
   }
 
   showLayer('dashboardLayer', false);
@@ -1732,7 +1724,6 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
   if(search){
     search.value = indikator;
     render();
-	applySmartKpiIconsAfterRender();
   }
 
   showLayer('dashboardLayer', false);
