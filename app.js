@@ -1742,3 +1742,29 @@ function pilihIndikatorSidebar(indikator, mode = 'dashboard'){
 
 // ==== END MIDER 2.0 THEME FIX: legacy light-mode removed, spreadsheet theme active ====
 
+// ==== MIDER STATUS HELPER ====
+function formatStatus(status,tahun){
+ switch(String(status||'').toUpperCase()){
+  case 'TW1': return '📌 Data Triwulan I Tahun '+tahun;
+  case 'TW2': return '📌 Data Triwulan II Tahun '+tahun;
+  case 'TW3': return '📌 Data Triwulan III Tahun '+tahun;
+  case 'TW4': return '📌 Data Triwulan IV Tahun '+tahun;
+  case 'TAHUNAN': return '📌 Data Tahunan Tahun '+tahun;
+  case 'BELUM': return '⚠ Belum Tersedia (Jenis Data Tahunan)';
+  default:return '';
+ }
+}
+function updateChartStatus(rows){
+ const box=document.getElementById('chartStatus'); if(!box)return;
+ const y=getSelectedDashboardYear(); const latest=Math.max(...years.map(Number));
+ if(String(y)!=='all'&&Number(y)!==latest){box.innerHTML='';return;}
+ const st=(rows.find(r=>r.status)||{}).status||'';
+ box.innerHTML=formatStatus(st,latest);
+}
+function updateTableStatus(rows){
+ const box=document.getElementById('tableStatus'); if(!box)return;
+ const y=getSelectedDashboardYear(); const latest=Math.max(...years.map(Number));
+ if(String(y)!=='all'&&Number(y)!==latest){box.innerHTML='';return;}
+ const st=(rows.find(r=>r.status)||{}).status||'';
+ box.innerHTML=formatStatus(st,latest);
+}
