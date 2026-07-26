@@ -252,11 +252,13 @@ if(isExecutiveDashboardMode()) inds = inds.filter(isExecutiveIndicator);
 
   kpiGrid.innerHTML=inds.map(ind=>{
     const latest=latestForIndicator(rows,ind);
+    const statusData = latest?.keterangan || '';
     const yoyYear=selectedYear==='all' ? latest?.tahun : selectedYear;
     const tr=trendOf(DATA,ind,yoyYear);
     const periode=tr.prev&&tr.last ? 'dibanding tahun sebelumnya' : '';
 
     return `<div class="card kpi"><h3>${ind.indikator}</h3><div class="value">${fmt(latest?.nilai)}</div><div class="meta">${ind.urusan} • ${ind.kategori} • ${ind.satuan||'-'}</div><div class="meta">Tahun: ${latest?.tahun||'-'} ${periode}</div><div class="trend ${tr.cls}">${tr.text}</div></div>`;
+<div class="progress-badge">${statusData}</div>
   }).join('') || '<div class="card kpi">Tidak ada data.</div>';
 }
 
@@ -456,7 +458,7 @@ function renderTable(rows){
       ket=tr.cls==='up'?'Naik dibanding tahun sebelumnya':tr.cls==='down'?'Turun dibanding tahun sebelumnya':'Relatif tetap dibanding tahun sebelumnya';
     }
 
-    return `<tr><td>${d.tahun??'-'}</td><td>${d.urusan??'-'}</td><td>${d.kategori??'-'}</td><td>${d.indikator??'-'}</td><td>${d.satuan??'-'}</td><td>${d.nilai!==null&&d.nilai!==undefined?fmt(d.nilai):'-'}</td><td class="trend ${trendClass}">${yoyText}</td><td class="trend ${trendClass}">${ket}</td></tr>`;
+    return `<tr><td>${d.tahun??'-'}</td><td>${d.urusan??'-'}</td><td>${d.kategori??'-'}</td><td>${d.indikator??'-'}</td><td>${d.satuan??'-'}</td><td>${d.nilai!==null&&d.nilai!==undefined?fmt(d.nilai):'-'}</td><td class="trend ${trendClass}">${yoyText}</td><td ${d.keterangan || '-'}</td></tr>`;
   }).join('')+'</tbody>';
 }
 function render(){
@@ -637,6 +639,7 @@ function normalizeDashboardData(rawData){
 	nilai: nilaiRaw === '' || nilaiRaw === null || nilaiRaw === undefined ? null : 	Number(String(nilaiRaw).replace(',', '.')),
 	chart: String(normalized.chart || 'stacked_area').trim(),
 	kecamatan: String(normalized.kecamatan || '').trim()
+	keterangan: String(normalized.keterangan || '').trim()
 	};
     })
     .filter(row => row.tahun && row.urusan && row.kategori && row.kode && row.indikator);
@@ -829,6 +832,7 @@ function startDashboard(rawData){
   }
 
   DATA = normalizeDashboardData(rawData.kpi || rawData);
+  console.log(DATA[0]);
   MAP_DATA_KECAMATAN = rawData.peta_kecamatan || rawData.peta || [];
   MAP_DATA_KELURAHAN = rawData.peta_kelurahan || [];
 
