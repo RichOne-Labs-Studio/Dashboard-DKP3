@@ -113,6 +113,7 @@ function populateFilters(){
    {id:'yearFilter', event:'change'},
    {id:'urusanFilter', event:'change'},
    {id:'kategoriFilter', event:'change'},
+   {id:'triwulanFilter', event:'change'},
    {id:'searchFilter', event:'input'}
  ].forEach(cfg=>{
    const el=document.getElementById(cfg.id);
@@ -146,19 +147,75 @@ function updateKategori(){
    kEl.value = 'all';
  }
 }
-function filteredBase(){
+function filteredBase(opts={}){
 const y=document.getElementById('yearFilter')?.value || 'all';
 const u=document.getElementById('urusanFilter')?.value || 'all';
 const k=document.getElementById('kategoriFilter')?.value || 'all';
 const s=(document.getElementById('searchFilter')?.value || '').toLowerCase();
+const tw=document.getElementById('triwulanFilter')?.value || 'all';
 
-return DATA.filter(d=>
+let rows = DATA.filter(d=>
 (y==='all'||String(d.tahun)===String(y)) &&
 (u==='all'||d.urusan===u) &&
 (k==='all'||d.kategori===k) &&
 (!s||String(d.indikator||'').toLowerCase().includes(s)) &&
 (!selectedKecamatan || String(d.kecamatan||'').toLowerCase()===String(selectedKecamatan).toLowerCase())
 );
+
+// Filter Triwulan hanya membatasi indikator yang memang triwulanan.
+// Indikator tahunan (triwulan null) tetap tampil apa pun triwulan yang dipilih,
+// karena nilainya memang berlaku untuk satu tahun penuh.
+if(!opts.excludeTriwulan && tw!=='all'){
+  rows = rows.filter(d => d.triwulan===null || String(d.triwulan)===String(tw));
+}
+
+return rows;
+}
+
+// Menentukan apakah kotak filter Triwulan perlu ditampilkan:
+// hanya muncul jika ada data triwulanan pada konteks filter Tahun/Urusan/Kategori/Cari saat ini.
+function updateTriwulanFilterVisibility(){
+  const box = document.getElementById('triwulanFilterBox');
+  const select = document.getElementById('triwulanFilter');
+  if(!box || !select) return;
+
+  const contextRows = filteredBase({excludeTriwulan:true});
+  const hasTriwulan = contextRows.some(d => d.triwulan!==null && d.triwulan!==undefined);
+
+  box.classList.toggle('hidden', !hasTriwulan);
+
+  if(!hasTriwulan && select.value !== 'all'){
+    select.value = 'all';
+  }
+}
+
+// Mengambil nilai satu indikator pada tahun tertentu, dengan aturan:
+// - jika filter Triwulan spesifik dipilih dan indikator itu triwulanan -> pakai nilai triwulan tsb
+// - jika indikator itu tahunan -> tetap pakai nilai tahunan (tidak terpengaruh filter triwulan)
+// - jika filter "Seluruh Triwulan" -> pakai periode terbaru yang tersedia pada tahun itu
+function valueForYear(ind, year){
+  const twFilter = document.getElementById('triwulanFilter')?.value || 'all';
+
+  const candidates = DATA.filter(d =>
+    Number(d.tahun)===Number(year) &&
+    d.kode===ind.kode &&
+    d.urusan===ind.urusan &&
+    d.kategori===ind.kategori &&
+    d.nilai!=null
+  );
+
+  if(!candidates.length) return null;
+
+  if(twFilter!=='all'){
+    const specific = candidates.find(d => String(d.triwulan)===String(twFilter));
+    if(specific) return specific.nilai;
+
+    const annual = candidates.find(d => d.triwulan===null);
+    return annual ? annual.nilai : null;
+  }
+
+  const latest = [...candidates].sort((a,b)=>b.periodeKey-a.periodeKey)[0];
+  return latest ? latest.nilai : null;
 }
 function getSelectedDashboardYear(){
   return document.getElementById('yearFilter')?.value || 'all';
@@ -168,7 +225,7 @@ function latestForIndicator(rows, ind){
   const yr = getSelectedDashboardYear();
   let r=rows.filter(d=>d.indikator===ind.indikator && d.urusan===ind.urusan && d.kategori===ind.kategori && d.kode===ind.kode && d.nilai!=null);
   if(yr!=='all') r=r.filter(d=>String(d.tahun)===String(yr));
-  r.sort((a,b)=>Number(b.tahun)-Number(a.tahun));
+  r.sort((a,b)=>Number(b.periodeKey)-Number(a.periodeKey));
   return r[0];
 }
 function groupIndicators(rows){ const map=new Map(); rows.forEach(d=>{const key=[d.urusan,d.kategori,d.kode,d.indikator].join('|'); if(!map.has(key)) map.set(key,d);}); return [...map.values()];}
@@ -205,18 +262,18 @@ function getDashboardDisplayRows(rows){
 
   return sourceRows.filter(isExecutiveIndicator);
 }
-function trendOf(rows, ind, targetYear=null){
+function trendOf(rows, ind, targetPeriodeKey=null){
   const arr=rows
     .filter(d=>d.kode===ind.kode&&d.urusan===ind.urusan&&d.kategori===ind.kategori&&d.nilai!==null&&d.nilai!==undefined)
-    .sort((a,b)=>a.tahun-b.tahun);
+    .sort((a,b)=>a.periodeKey-b.periodeKey);
 
   if(arr.length<2){
     return {cls:'flat',text:'YoY: Data terbatas',change:null,first:arr[0]||null,prev:null,last:arr[arr.length-1]||null};
   }
 
   let last;
-  if(targetYear!==null&&targetYear!==undefined&&targetYear!=='all'){
-    last=arr.find(d=>String(d.tahun)===String(targetYear));
+  if(targetPeriodeKey!==null&&targetPeriodeKey!==undefined&&targetPeriodeKey!=='all'){
+    last=arr.find(d=>Number(d.periodeKey)===Number(targetPeriodeKey));
   }else{
     last=arr[arr.length-1];
   }
@@ -225,11 +282,23 @@ function trendOf(rows, ind, targetYear=null){
     return {cls:'flat',text:'YoY: Data tidak tersedia',change:null,first:arr[0],prev:null,last:null};
   }
 
-  const idx=arr.findIndex(d=>String(d.tahun)===String(last.tahun));
+  const idx=arr.findIndex(d=>Number(d.periodeKey)===Number(last.periodeKey));
   const prev=idx>0?arr[idx-1]:null;
 
+  // Label dinamis: bandingkan triwulan-ke-triwulan (QoQ) jika kedua titik triwulan
+  // pada tahun yang sama, selain itu tetap dianggap YoY / antar periode.
+  const isQoQ = !!(prev && last.tahun===prev.tahun && last.triwulan && prev.triwulan);
+  const periodLabel = isQoQ ? 'QoQ' : 'YoY';
+
   if(!prev||prev.nilai===0||prev.nilai===null||prev.nilai===undefined){
-    return {cls:'flat',text:'YoY: Data tahun sebelumnya tidak tersedia',change:null,first:arr[0],prev,last};
+    return {cls:'flat',text:periodLabel+': Data periode sebelumnya tidak tersedia',change:null,first:arr[0],prev,last};
+  }
+
+  // Kasus transisi: indikator yang sebelumnya tahunan baru mulai dilaporkan per triwulan
+  // (atau sebaliknya). Nilai triwulan (satu kuartal) dan nilai tahunan (satu tahun penuh)
+  // tidak sepadan untuk dibandingkan langsung, jadi persentase tidak ditampilkan agar tidak menyesatkan.
+  if(!!last.triwulan !== !!prev.triwulan){
+    return {cls:'flat',text:'Periode baru: belum ada pembanding triwulan yang setara',change:null,first:arr[0],prev,last};
   }
 
   const c=((last.nilai-prev.nilai)/Math.abs(prev.nilai))*100;
@@ -238,7 +307,7 @@ function trendOf(rows, ind, targetYear=null){
 
   return {
     cls,
-    text:'YoY: '+label+' '+Math.abs(c).toLocaleString('id-ID',{maximumFractionDigits:2})+'%',
+    text:periodLabel+': '+label+' '+Math.abs(c).toLocaleString('id-ID',{maximumFractionDigits:2})+'%',
     change:c,
     first:arr[0],
     prev,
@@ -248,15 +317,14 @@ function trendOf(rows, ind, targetYear=null){
 function renderKPIs(rows){
   let inds = groupIndicators(rows);
 if(isExecutiveDashboardMode()) inds = inds.filter(isExecutiveIndicator);
-  const selectedYear=getSelectedDashboardYear();
 
   kpiGrid.innerHTML=inds.map(ind=>{
     const latest=latestForIndicator(rows,ind);
-    const yoyYear=selectedYear==='all' ? latest?.tahun : selectedYear;
-    const tr=trendOf(DATA,ind,yoyYear);
-    const periode=tr.prev&&tr.last ? 'dibanding tahun sebelumnya' : '';
+    const tr=trendOf(DATA,ind,latest?.periodeKey);
+    const periode=tr.prev&&tr.last ? 'dibanding periode sebelumnya' : '';
+    const periodeTag=latest?.triwulan ? `<span class="periodTag">Triwulan ${latest.triwulan}</span>` : `<span class="periodTag">Tahunan</span>`;
 
-    return `<div class="card kpi"><h3>${ind.indikator}</h3><div class="value">${fmt(latest?.nilai)}</div><div class="meta">${ind.urusan} • ${ind.kategori} • ${ind.satuan||'-'}</div><div class="meta">Tahun: ${latest?.tahun||'-'} ${periode}</div><div class="trend ${tr.cls}">${tr.text}</div></div>`;
+    return `<div class="card kpi"><h3>${ind.indikator}</h3><div class="value">${fmt(latest?.nilai)}</div><div class="meta">${ind.urusan} • ${ind.kategori} • ${ind.satuan||'-'}</div><div class="meta">Periode: ${latest?.periodeLabel||'-'} ${periodeTag} ${periode}</div><div class="trend ${tr.cls}">${tr.text}</div></div>`;
   }).join('') || '<div class="card kpi">Tidak ada data.</div>';
 }
 
@@ -281,17 +349,7 @@ function makeDatasets(rows, inds){
   return inds.slice(0,12).map(ind => ({
     label: ind.indikator.substring(0,48),
 
-    data: chartYears.map(y => {
-      const r = DATA.find(
-        d =>
-          Number(d.tahun) === Number(y) &&
-          d.kode === ind.kode &&
-          d.urusan === ind.urusan &&
-          d.kategori === ind.kategori
-      );
-
-      return r?.nilai ?? null;
-    }),
+    data: chartYears.map(y => valueForYear(ind, y)),
 
     fill: true,
     tension: .35,
@@ -341,7 +399,7 @@ if(isExecutiveDashboardMode()) inds = inds.filter(isExecutiveIndicator);
  const barCanvas=document.getElementById('barChart');
  if(barCanvas){
   const selectedYear=getSelectedDashboardYear()==='all'?Math.max(...years.map(Number)):Number(getSelectedDashboardYear());
-  const vals=inds.map(ind=>({label:ind.indikator.substring(0,35),v:rows.find(d=>d.tahun===selectedYear&&d.kode===ind.kode&&d.urusan===ind.urusan&&d.kategori===ind.kategori)?.nilai??null})).filter(x=>x.v!=null).sort((a,b)=>b.v-a.v).slice(0,15);
+  const vals=inds.map(ind=>({label:ind.indikator.substring(0,35),v:valueForYear(ind, selectedYear)})).filter(x=>x.v!=null).sort((a,b)=>b.v-a.v).slice(0,15);
   barChart=new Chart(barCanvas,{type:'bar',data:{labels:vals.map(x=>x.label),datasets:[{label:'Nilai '+selectedYear,data:vals.map(x=>x.v)}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:applyMiderScaleTheme({x:{beginAtZero:true},y:{}})}});
  }
  renderMiniCharts(rows,inds);
@@ -355,15 +413,7 @@ function renderMiniCharts(rows,inds){
   indicatorCharts.innerHTML=inds.map((ind,i)=>`<div class="card kpi smallChart"><h3>${ind.indikator}</h3><canvas id="mini${i}"></canvas><div class="meta">${ind.urusan} • ${ind.kategori}</div></div>`).join('');
 
   inds.forEach((ind,i)=>{
-    const vals=chartYears.map(y=>
-      DATA.find(
-        d =>
-          Number(d.tahun)===Number(y) &&
-          d.kode===ind.kode &&
-          d.urusan===ind.urusan &&
-          d.kategori===ind.kategori
-      )?.nilai??null
-    );
+    const vals=chartYears.map(y=>valueForYear(ind, y));
 
     const allowedCharts = ['line','bar','pie','doughnut','radar','polarArea'];
     const type = allowedCharts.includes(ind.chart)? ind.chart: 'line';
@@ -402,12 +452,10 @@ function renderInsights(rows){
   }
 
   const inds = groupIndicators(rows || []);
-  const selectedYear = document.getElementById('yearFilter')?.value || 'all';
 
   let ranked = inds.map(ind => {
     const latest = latestForIndicator(rows || [], ind);
-    const yoyYear = selectedYear === 'all' ? latest?.tahun : selectedYear;
-    return { ind, tr: trendOf(DATA, ind, yoyYear) };
+    return { ind, tr: trendOf(DATA, ind, latest?.periodeKey) };
   }).filter(x => x.tr && x.tr.change !== null && x.tr.change !== undefined);
 
   const up = ranked
@@ -421,9 +469,10 @@ function renderInsights(rows){
     .slice(0,3);
 
   if(insightListEl){
+    const periodWord = x => x.tr.text.startsWith('QoQ') ? 'QoQ' : 'YoY';
     const items = [
-      ...up.map(x => `<li><b>${x.ind.indikator}</b> YoY naik ${Math.abs(x.tr.change).toLocaleString('id-ID',{maximumFractionDigits:2})}% dibanding tahun sebelumnya.</li>`),
-      ...down.map(x => `<li><b>${x.ind.indikator}</b> YoY turun ${Math.abs(x.tr.change).toLocaleString('id-ID',{maximumFractionDigits:2})}% dibanding tahun sebelumnya.</li>`)
+      ...up.map(x => `<li><b>${x.ind.indikator}</b> ${periodWord(x)} naik ${Math.abs(x.tr.change).toLocaleString('id-ID',{maximumFractionDigits:2})}% dibanding periode sebelumnya.</li>`),
+      ...down.map(x => `<li><b>${x.ind.indikator}</b> ${periodWord(x)} turun ${Math.abs(x.tr.change).toLocaleString('id-ID',{maximumFractionDigits:2})}% dibanding periode sebelumnya.</li>`)
     ];
 
     insightListEl.innerHTML = items.length
@@ -439,27 +488,32 @@ function renderInsights(rows){
 }
 
 function renderTable(rows){
-  const sortedRows=[...rows].sort((a,b)=>(a.tahun||0)-(b.tahun||0)||String(a.urusan||'').localeCompare(String(b.urusan||''))||String(a.kategori||'').localeCompare(String(b.kategori||''))||String(a.indikator||'').localeCompare(String(b.indikator||'')));
+  const sortedRows=[...rows].sort((a,b)=>(a.periodeKey||0)-(b.periodeKey||0)||String(a.urusan||'').localeCompare(String(b.urusan||''))||String(a.kategori||'').localeCompare(String(b.kategori||''))||String(a.indikator||'').localeCompare(String(b.indikator||'')));
 
-  matrixTable.innerHTML='<thead><tr><th>Tahun</th><th>Urusan</th><th>Kategori</th><th>Indikator</th><th>Satuan</th><th>Nilai</th><th>YoY</th><th>Keterangan</th></tr></thead><tbody>'+
+  matrixTable.innerHTML='<thead><tr><th>Periode</th><th>Urusan</th><th>Kategori</th><th>Indikator</th><th>Satuan</th><th>Nilai</th><th>Tren</th><th>Keterangan</th></tr></thead><tbody>'+
   sortedRows.map(d=>{
     const ind={kode:d.kode,urusan:d.urusan,kategori:d.kategori};
-    const tr=trendOf(DATA,ind,d.tahun);
+    const tr=trendOf(DATA,ind,d.periodeKey);
+    const periodWord = tr.text.startsWith('QoQ') ? 'QoQ' : 'YoY';
 
-    let yoyText='-';
-    let ket='Data tahun sebelumnya tidak tersedia';
-    let trendClass='flat';
+    let trenText='-';
+    let ket=tr.text || 'Data periode sebelumnya tidak tersedia';
+    let trendClass=tr.cls || 'flat';
 
     if(tr.change!==null&&tr.change!==undefined){
-      yoyText=(tr.change>0?'+':'')+tr.change.toLocaleString('id-ID',{maximumFractionDigits:2})+'%';
+      trenText=periodWord+' '+(tr.change>0?'+':'')+tr.change.toLocaleString('id-ID',{maximumFractionDigits:2})+'%';
       trendClass=tr.cls;
-      ket=tr.cls==='up'?'Naik dibanding tahun sebelumnya':tr.cls==='down'?'Turun dibanding tahun sebelumnya':'Relatif tetap dibanding tahun sebelumnya';
+      ket=tr.cls==='up'?'Naik dibanding periode sebelumnya':tr.cls==='down'?'Turun dibanding periode sebelumnya':'Relatif tetap dibanding periode sebelumnya';
     }
 
-    return `<tr><td>${d.tahun??'-'}</td><td>${d.urusan??'-'}</td><td>${d.kategori??'-'}</td><td>${d.indikator??'-'}</td><td>${d.satuan??'-'}</td><td>${d.nilai!==null&&d.nilai!==undefined?fmt(d.nilai):'-'}</td><td class="trend ${trendClass}">${yoyText}</td><td class="trend ${trendClass}">${ket}</td></tr>`;
+    const periodeLabel = d.periodeLabel || (d.tahun??'-');
+
+    return `<tr><td>${periodeLabel}</td><td>${d.urusan??'-'}</td><td>${d.kategori??'-'}</td><td>${d.indikator??'-'}</td><td>${d.satuan??'-'}</td><td>${d.nilai!==null&&d.nilai!==undefined?fmt(d.nilai):'-'}</td><td class="trend ${trendClass}">${trenText}</td><td class="trend ${trendClass}">${ket}</td></tr>`;
   }).join('')+'</tbody>';
 }
 function render(){
+  updateTriwulanFilterVisibility();
+
   const rows = filteredBase();
   const displayRows = getDashboardDisplayRows(rows);
   const inds = groupIndicators(displayRows);
@@ -470,8 +524,7 @@ function render(){
   const selectedYear = yearEl?.value || 'all';
   const trends = inds.map(ind => {
     const latest = latestForIndicator(displayRows, ind);
-    const yoyYear = selectedYear === 'all' ? latest?.tahun : selectedYear;
-    return trendOf(DATA, ind, yoyYear);
+    return trendOf(DATA, ind, latest?.periodeKey);
   });
 
   const sumIndicatorsEl = document.getElementById('sumIndicators');
@@ -479,14 +532,22 @@ function render(){
   const sumUpEl = document.getElementById('sumUp');
   const sumDownEl = document.getElementById('sumDown');
   const activeFilterLabelEl = document.getElementById('activeFilterLabel');
+  const triwulanValue = document.getElementById('triwulanFilter')?.value || 'all';
 
   if(sumIndicatorsEl) sumIndicatorsEl.textContent = inds.length;
   if(sumYearsEl) sumYearsEl.textContent = [...new Set(displayRows.map(d=>d.tahun))].length;
   if(sumUpEl) sumUpEl.textContent = trends.filter(t=>t.change>0).length;
   if(sumDownEl) sumDownEl.textContent = trends.filter(t=>t.change<0).length;
   if(activeFilterLabelEl){
-    activeFilterLabelEl.textContent =
-      `${selectedYear === 'all' ? 'Semua Tahun' : selectedYear} • ${urusanEl?.value === 'all' ? 'Semua Urusan' : (urusanEl?.value || '-')} • ${kategoriEl?.value === 'all' ? 'Semua Kategori' : (kategoriEl?.value || '-')}`;
+    const parts = [
+      selectedYear === 'all' ? 'Semua Tahun' : selectedYear,
+      urusanEl?.value === 'all' ? 'Semua Urusan' : (urusanEl?.value || '-'),
+      kategoriEl?.value === 'all' ? 'Semua Kategori' : (kategoriEl?.value || '-')
+    ];
+    if(triwulanValue !== 'all'){
+      parts.push('Triwulan ' + triwulanValue);
+    }
+    activeFilterLabelEl.textContent = parts.join(' • ');
   }
 
   renderKPIs(displayRows);
@@ -531,12 +592,14 @@ function resetFilters(){
   const yearEl = document.getElementById('yearFilter');
   const urusanEl = document.getElementById('urusanFilter');
   const kategoriEl = document.getElementById('kategoriFilter');
+  const triwulanEl = document.getElementById('triwulanFilter');
   const searchEl = document.getElementById('searchFilter');
 
   if(yearEl) yearEl.value = 'all';
   if(urusanEl) urusanEl.value = 'all';
   updateKategori();
   if(kategoriEl) kategoriEl.value = 'all';
+  if(triwulanEl) triwulanEl.value = 'all';
   if(searchEl) searchEl.value = '';
 
   activeDashboardUrusan = 'all';
@@ -611,6 +674,42 @@ function setupManualRefreshButton(){
 
 
 
+// =========================
+// PERIODE: TAHUNAN vs TRIWULANAN
+// =========================
+// Kolom sheet yang didukung (salah satu): triwulan | tw | quarter | periode
+// Nilai yang dikenali sebagai triwulan: "1".."4", "TW1".."TW4", "Q1".."Q4", "Triwulan 2", dst.
+// Kosong / "Tahunan" / tidak dikenali -> dianggap data tahunan (null).
+function parseTriwulanValue(raw){
+  const text = String(raw==null ? '' : raw).trim();
+  if(!text) return null;
+  if(/tahun/i.test(text)) return null;
+
+  const match = text.match(/[1-4]/);
+  return match ? Number(match[0]) : null;
+}
+
+function buildPeriodeKey(tahun, triwulan){
+  const t = Number(tahun) || 0;
+  return t * 10 + (triwulan || 0);
+}
+
+function buildPeriodeLabel(tahun, triwulan){
+  return triwulan ? `${tahun} - TW${triwulan}` : `${tahun}`;
+}
+
+// Sheet Google Sheets kadang berisi "#N/A" (hasil formula IFERROR/VLOOKUP kosong) atau "-".
+// Nilai seperti ini harus dibaca sebagai data kosong (null), bukan NaN yang bisa merusak grafik.
+function parseNilaiValue(raw){
+  if(raw === '' || raw === null || raw === undefined) return null;
+
+  const text = String(raw).trim();
+  if(!text || /^#?n\/?a$/i.test(text) || text === '-') return null;
+
+  const parsed = Number(text.replace(',', '.'));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function normalizeDashboardData(rawData){
   const rows = Array.isArray(rawData) ? rawData : (rawData && Array.isArray(rawData.data) ? rawData.data : []);
 
@@ -624,7 +723,9 @@ function normalizeDashboardData(rawData){
       });
 
       const tahun = Number(normalized.tahun);
-      const nilaiRaw = normalized.nilai;
+      const triwulan = parseTriwulanValue(
+        normalized.triwulan ?? normalized.tw ?? normalized.quarter ?? normalized.periode
+      );
 
       return {
 	tahun: Number.isFinite(tahun) ? tahun : normalized.tahun,
@@ -634,9 +735,12 @@ function normalizeDashboardData(rawData){
 	indikator: String(normalized.indikator || '').trim(),
 	label_lengkap: String(normalized.label_lengkap || '').trim(),
 	satuan: String(normalized.satuan || '').trim(),
-	nilai: nilaiRaw === '' || nilaiRaw === null || nilaiRaw === undefined ? null : 	Number(String(nilaiRaw).replace(',', '.')),
-	chart: String(normalized.chart || 'stacked_area').trim(),
-	kecamatan: String(normalized.kecamatan || '').trim()
+	nilai: parseNilaiValue(normalized.nilai),
+	chart: String(normalized.chart || 'stacked_area').trim().toLowerCase().replace(/\s+/g,'_'),
+	kecamatan: String(normalized.kecamatan || '').trim(),
+	triwulan: triwulan,
+	periodeKey: buildPeriodeKey(tahun, triwulan),
+	periodeLabel: buildPeriodeLabel(tahun, triwulan)
 	};
     })
     .filter(row => row.tahun && row.urusan && row.kategori && row.kode && row.indikator);
@@ -905,6 +1009,20 @@ function loadDashboardDataFromJsonp(){
   });
 }
 
+// Fallback lokal: memakai data.json yang dibundel bersama dashboard (hasil ekspor
+// spreadsheet Data_Dashboard_DKP3.xlsx). Dipakai hanya jika Google Sheets API/Apps Script
+// tidak terjangkau (mis. dijalankan offline atau sebelum Apps Script di-deploy ulang),
+// sehingga dashboard tetap tampil dengan data nyata alih-alih layar kosong/error.
+async function loadDashboardDataFromLocalFile(){
+  const response = await fetch('data.json', {cache: 'reload'});
+  if(!response.ok) throw new Error('File data.json lokal tidak ditemukan (HTTP ' + response.status + ')');
+
+  const rawData = await response.json();
+  saveDashboardCache(rawData);
+  startDashboard(rawData);
+  return rawData;
+}
+
 async function loadDashboardData(options = {}){
   const forceRefresh = options.forceRefresh === true;
   const useCache = options.useCache !== false;
@@ -932,27 +1050,23 @@ async function loadDashboardData(options = {}){
     try{
       await loadDashboardDataFromJsonp();
     }catch(jsonpError){
-      console.error(jsonpError);
+      console.warn('JSONP gagal, mencoba data lokal (bundel spreadsheet):', jsonpError);
 
       try{
-        const fallback = await fetch(GOOGLE_SHEETS_API_URL + '?v=' + Date.now(), {cache: 'reload'});
-        if(!fallback.ok) throw new Error('Fallback API juga gagal');
-        const rawData = await fallback.json();
-        saveDashboardCache(rawData);
-        startDashboard(rawData);
+        await loadDashboardDataFromLocalFile();
 
         document.body.insertAdjacentHTML(
           'afterbegin',
           `<div style="padding:10px 16px;background:#fef3c7;color:#92400e;font-weight:700">
-            Data Google Sheets sempat lambat dimuat, dashboard memakai hasil pembacaan terakhir dari API.
+            Google Sheets API tidak terjangkau. Dashboard menampilkan data lokal (data.json) sebagai cadangan.
           </div>`
         );
-      }catch(fallbackError){
-        console.error(fallbackError);
+      }catch(localError){
+        console.error(localError);
         document.body.insertAdjacentHTML(
           'afterbegin',
           `<div style="padding:14px 18px;background:#fee2e2;color:#991b1b;font-weight:700">
-            Gagal memuat data dashboard. Periksa URL API, akses Apps Script, dan header Google Sheets.
+            Gagal memuat data dashboard. Periksa URL API, akses Apps Script, header Google Sheets, dan keberadaan file data.json.
           </div>`
         );
       }
@@ -1392,11 +1506,13 @@ function showLayer(layerId, shouldReset = true){
 
       const urusanEl = document.getElementById('urusanFilter');
       const kategoriEl = document.getElementById('kategoriFilter');
+      const triwulanEl = document.getElementById('triwulanFilter');
       const searchEl = document.getElementById('searchFilter');
 
       if(urusanEl) urusanEl.value = 'all';
       updateKategori();
       if(kategoriEl) kategoriEl.value = 'all';
+      if(triwulanEl) triwulanEl.value = 'all';
       if(searchEl) searchEl.value = '';
     }
 
