@@ -267,16 +267,18 @@ function trendOf(rows, ind, targetPeriodeKey=null){
     .filter(d=>d.kode===ind.kode&&d.urusan===ind.urusan&&d.kategori===ind.kategori&&d.nilai!==null&&d.nilai!==undefined)
     .sort((a,b)=>a.periodeKey-b.periodeKey);
 
+  // Tidak ada target periode berarti indikator ini memang tidak punya data pada
+  // kombinasi filter Tahun/Triwulan/Urusan/Kategori yang sedang aktif (KPI menampilkan N/A).
+  // Jangan diam-diam memakai data periode lain untuk menghitung tren -- itu menyesatkan.
+  if(targetPeriodeKey===null||targetPeriodeKey===undefined){
+    return {cls:'flat',text:'Periode ini: belum ada data untuk pembanding',change:null,first:arr[0]||null,prev:null,last:null};
+  }
+
   if(arr.length<2){
     return {cls:'flat',text:'YoY: Data terbatas',change:null,first:arr[0]||null,prev:null,last:arr[arr.length-1]||null};
   }
 
-  let last;
-  if(targetPeriodeKey!==null&&targetPeriodeKey!==undefined&&targetPeriodeKey!=='all'){
-    last=arr.find(d=>Number(d.periodeKey)===Number(targetPeriodeKey));
-  }else{
-    last=arr[arr.length-1];
-  }
+  const last=arr.find(d=>Number(d.periodeKey)===Number(targetPeriodeKey));
 
   if(!last){
     return {cls:'flat',text:'YoY: Data tidak tersedia',change:null,first:arr[0],prev:null,last:null};
@@ -322,7 +324,7 @@ if(isExecutiveDashboardMode()) inds = inds.filter(isExecutiveIndicator);
     const latest=latestForIndicator(rows,ind);
     const tr=trendOf(DATA,ind,latest?.periodeKey);
     const periode=tr.prev&&tr.last ? 'dibanding periode sebelumnya' : '';
-    const periodeTag=latest?.triwulan ? `<span class="periodTag">Triwulan ${latest.triwulan}</span>` : `<span class="periodTag">Tahunan</span>`;
+    const periodeTag=!latest ? '' : (latest.triwulan ? `<span class="periodTag">Triwulan ${latest.triwulan}</span>` : `<span class="periodTag">Tahunan</span>`);
 
     return `<div class="card kpi"><h3>${ind.indikator}</h3><div class="value">${fmt(latest?.nilai)}</div><div class="meta">${ind.urusan} • ${ind.kategori} • ${ind.satuan||'-'}</div><div class="meta">Periode: ${latest?.periodeLabel||'-'} ${periodeTag} ${periode}</div><div class="trend ${tr.cls}">${tr.text}</div></div>`;
   }).join('') || '<div class="card kpi">Tidak ada data.</div>';
@@ -615,19 +617,6 @@ const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw-g0VpS3
 const DASHBOARD_CACHE_KEY = 'miderDashboardCacheV1';
 let isDashboardLoading = false;
 
-// Interval sinkronisasi berkala. Nilai dari spreadsheet (config.auto_refresh_minutes)
-// tetap diutamakan, tetapi selalu ada default dan batas minimum supaya dashboard
-// tidak pernah berhenti menyinkron hanya karena kolom config kosong atau diisi 0.
-const MIDER_DEFAULT_REFRESH_MINUTES = 5;
-const MIDER_MIN_REFRESH_MINUTES = 1;
-
-// Ambang data dianggap basi saat dashboard kembali dilihat/di-fokus.
-const MIDER_STALE_AFTER_MS = 30000;
-
-// Status sinkronisasi terakhir: dipakai footer dan pemicu refresh otomatis.
-let miderLastSyncAt = 0;
-let miderDataSource = 'server'; // 'server' | 'cache' | 'local'
-
 function saveDashboardCache(rawData){
   try{
     localStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify({
@@ -639,59 +628,17 @@ function saveDashboardCache(rawData){
   }
 }
 
-// Mengembalikan cache beserta waktu simpannya, karena waktu itu dipakai
-// untuk memberi tahu user kapan sinkronisasi terakhir yang berhasil terjadi.
-function getDashboardCacheEntry(){
+function getDashboardCache(){
   try{
     const cached = localStorage.getItem(DASHBOARD_CACHE_KEY);
     if(!cached) return null;
 
     const parsed = JSON.parse(cached);
-    if(!parsed?.data) return null;
-
-    return { data: parsed.data, savedAt: Number(parsed.savedAt) || 0 };
+    return parsed?.data || null;
   }catch(error){
     console.warn('Cache dashboard tidak bisa dibaca:', error);
     return null;
   }
-}
-
-function markDashboardSynced(source, timestamp){
-  miderDataSource = source;
-  miderLastSyncAt = Number(timestamp) || Date.now();
-}
-
-function formatSyncTime(timestamp){
-  if(!timestamp) return '-';
-
-  return new Date(timestamp).toLocaleTimeString('id-ID', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-
-// Satu elemen pemberitahuan yang dipakai ulang. Penting karena sinkronisasi
-// berjalan berkala: kalau server berkali-kali gagal, banner tidak boleh menumpuk.
-function setDashboardNotice(type, message){
-  let box = document.getElementById('miderDataNotice');
-
-  if(!type){
-    if(box) box.remove();
-    return;
-  }
-
-  if(!box){
-    box = document.createElement('div');
-    box.id = 'miderDataNotice';
-    document.body.insertBefore(box, document.body.firstChild);
-  }
-
-  const palette = type === 'error'
-    ? 'background:#fee2e2;color:#991b1b'
-    : 'background:#fef3c7;color:#92400e';
-
-  box.style.cssText = palette + ';padding:10px 16px;font-weight:700;font-size:13px';
-  box.textContent = message;
 }
 
 function setRefreshButtonLoading(isLoading){
@@ -717,7 +664,7 @@ function setupManualRefreshButton(){
     if(isDashboardLoading) return;
 
     try{
-      await loadDashboardData({showLoading:true});
+      await loadDashboardData({forceRefresh:true, useCache:false, showLoading:true});
     }catch(error){
       console.error('Refresh manual gagal:', error);
       alert('Gagal refresh data. Periksa koneksi internet dan URL API.');
@@ -1018,21 +965,20 @@ function startDashboard(rawData){
   render();
 }
 
-// Jalur utama data. Selalu mengambil versi terbaru dari server:
-// cache-buster pada URL + cache:'no-store' agar browser, proxy, atau service worker
-// tidak menyajikan salinan lama.
-async function loadDashboardDataFromFetch(){
-  const apiUrl = GOOGLE_SHEETS_API_URL + '?v=' + Date.now();
+async function loadDashboardDataFromFetch(options = {}){
+  const forceRefresh = options.forceRefresh === true;
+  const apiUrl = forceRefresh
+    ? GOOGLE_SHEETS_API_URL + '?v=' + Date.now()
+    : GOOGLE_SHEETS_API_URL;
 
   const response = await fetch(apiUrl, {
-    cache: 'no-store'
+    cache: forceRefresh ? 'reload' : 'default'
   });
 
   if(!response.ok) throw new Error('Gagal memuat data API: HTTP ' + response.status);
 
   const rawData = await response.json();
   saveDashboardCache(rawData);
-  markDashboardSynced('server');
   startDashboard(rawData);
 }
 
@@ -1043,7 +989,6 @@ function loadDashboardDataFromJsonp(){
     window[callbackName] = function(rawData){
       try{
         saveDashboardCache(rawData);
-        markDashboardSynced('server');
         startDashboard(rawData);
         resolve();
       }catch(error){
@@ -1075,51 +1020,14 @@ async function loadDashboardDataFromLocalFile(){
   if(!response.ok) throw new Error('File data.json lokal tidak ditemukan (HTTP ' + response.status + ')');
 
   const rawData = await response.json();
-
-  // Sengaja tidak menimpa cache: cache berisi hasil sinkron terakhir dari server
-  // yang biasanya lebih baru daripada file bundel ini.
-  markDashboardSynced('local');
+  saveDashboardCache(rawData);
   startDashboard(rawData);
   return rawData;
 }
 
-// Dipakai hanya kalau server benar-benar tidak terjangkau.
-// Urutannya: hasil sinkron terakhir dari server (localStorage) lebih dulu,
-// baru file bundel data.json, karena cache berisi angka yang lebih baru.
-async function loadDashboardFallback(){
-  const cached = getDashboardCacheEntry();
-
-  if(cached){
-    markDashboardSynced('cache', cached.savedAt);
-    startDashboard(cached.data);
-    setDashboardNotice(
-      'warn',
-      'Server tidak terjangkau. Menampilkan hasil sinkron terakhir pukul ' +
-      formatSyncTime(cached.savedAt) + '. Dashboard akan menyinkron ulang otomatis.'
-    );
-    return;
-  }
-
-  try{
-    await loadDashboardDataFromLocalFile();
-    setDashboardNotice(
-      'warn',
-      'Server tidak terjangkau. Dashboard menampilkan data cadangan lokal (data.json) dan akan menyinkron ulang otomatis.'
-    );
-  }catch(localError){
-    console.error(localError);
-    setDashboardNotice(
-      'error',
-      'Gagal memuat data dashboard. Periksa koneksi internet, URL API, dan akses Apps Script.'
-    );
-
-    // Tidak ada data sama sekali: startDashboard tidak pernah jalan, jadi timer
-    // sinkronisasi dijadwalkan di sini supaya dashboard tetap mencoba lagi sendiri.
-    scheduleMiderAutoRefresh();
-  }
-}
-
 async function loadDashboardData(options = {}){
+  const forceRefresh = options.forceRefresh === true;
+  const useCache = options.useCache !== false;
   const showLoading = options.showLoading === true;
 
   if(isDashboardLoading) return;
@@ -1128,52 +1036,48 @@ async function loadDashboardData(options = {}){
   if(showLoading) setRefreshButtonLoading(true);
 
   try{
-    // Selalu langsung ke server. Cache tidak pernah dipakai untuk tampilan awal
-    // agar angka di layar sama dengan angka di spreadsheet saat itu juga.
-    await loadDashboardDataFromFetch();
-    setDashboardNotice(null);
+    if(useCache && !forceRefresh){
+      const cachedData = getDashboardCache();
+
+      if(cachedData){
+        startDashboard(cachedData);
+      }
+    }
+
+    await loadDashboardDataFromFetch({forceRefresh:true});
+
   }catch(fetchError){
     console.warn('Fetch API gagal, mencoba mode JSONP:', fetchError);
 
     try{
       await loadDashboardDataFromJsonp();
-      setDashboardNotice(null);
     }catch(jsonpError){
-      console.warn('JSONP gagal, memakai data cadangan:', jsonpError);
-      await loadDashboardFallback();
+      console.warn('JSONP gagal, mencoba data lokal (bundel spreadsheet):', jsonpError);
+
+      try{
+        await loadDashboardDataFromLocalFile();
+
+        document.body.insertAdjacentHTML(
+          'afterbegin',
+          `<div style="padding:10px 16px;background:#fef3c7;color:#92400e;font-weight:700">
+            Google Sheets API tidak terjangkau. Dashboard menampilkan data lokal (data.json) sebagai cadangan.
+          </div>`
+        );
+      }catch(localError){
+        console.error(localError);
+        document.body.insertAdjacentHTML(
+          'afterbegin',
+          `<div style="padding:14px 18px;background:#fee2e2;color:#991b1b;font-weight:700">
+            Gagal memuat data dashboard. Periksa URL API, akses Apps Script, header Google Sheets, dan keberadaan file data.json.
+          </div>`
+        );
+      }
     }
   }finally{
     isDashboardLoading = false;
     if(showLoading) setRefreshButtonLoading(false);
     setupManualRefreshButton();
   }
-}
-
-// Menyinkronkan ulang kalau data di layar sudah lewat ambang basi.
-function refreshDashboardIfStale(){
-  if(isDashboardLoading) return;
-  if(miderLastSyncAt && (Date.now() - miderLastSyncAt) < MIDER_STALE_AFTER_MS) return;
-
-  loadDashboardData();
-}
-
-// Timer berkala saja tidak cukup untuk menjaga data tetap realtime: browser
-// (terutama di HP) membekukan tab yang lama tidak aktif, sehingga interval tertunda.
-// Karena itu sinkronisasi juga dipicu saat tab dilihat lagi, saat window difokus,
-// dan saat koneksi internet kembali tersambung.
-function setupMiderRealtimeTriggers(){
-  if(window.miderRealtimeTriggersReady) return;
-  window.miderRealtimeTriggersReady = true;
-
-  document.addEventListener('visibilitychange', function(){
-    if(document.visibilityState === 'visible') refreshDashboardIfStale();
-  });
-
-  window.addEventListener('focus', refreshDashboardIfStale);
-
-  window.addEventListener('online', function(){
-    loadDashboardData();
-  });
 }
 
 
@@ -1415,47 +1319,29 @@ function renderMiderFooter(config = {}, generatedAt = ''){
   if(agencyEl) agencyEl.textContent = config.dashboard_footer || 'DKP3 Kota Cirebon';
   if(statusEl){
     const maintenance = String(config.maintenance || 'OFF').trim().toUpperCase();
-
-    // Status dibuat jujur: user perlu tahu angka yang dilihat berasal dari server
-    // saat itu juga, atau dari cadangan karena server sedang tidak terjangkau.
-    if(maintenance === 'ON'){
-      statusEl.textContent = '🟠 Maintenance';
-    }else if(miderDataSource === 'server'){
-      statusEl.textContent = '🟢 Data Aktif • sinkron ' + formatSyncTime(miderLastSyncAt);
-    }else if(miderDataSource === 'cache'){
-      statusEl.textContent = '🟠 Offline • sinkron terakhir ' + formatSyncTime(miderLastSyncAt);
-    }else{
-      statusEl.textContent = '🟠 Offline • data cadangan lokal';
-    }
+    statusEl.textContent = maintenance === 'ON' ? '🟠 Maintenance' : '🟢 Data Aktif';
   }
 }
 
 function scheduleMiderAutoRefresh(config = {}){
-  const configured = Number(config.auto_refresh_minutes);
-
-  // Config spreadsheet tetap yang menentukan, tetapi tidak boleh mematikan
-  // sinkronisasi (nilai kosong/0) atau membanjiri Apps Script (di bawah 1 menit).
-  const minutes = Number.isFinite(configured) && configured > 0
-    ? Math.max(configured, MIDER_MIN_REFRESH_MINUTES)
-    : MIDER_DEFAULT_REFRESH_MINUTES;
-
+  const minutes = Number(config.auto_refresh_minutes || 0);
   if(miderAutoRefreshTimer){
     clearInterval(miderAutoRefreshTimer);
     miderAutoRefreshTimer = null;
   }
 
-  miderAutoRefreshTimer = setInterval(function(){
-    if(!isDashboardLoading){
-      loadDashboardData();
-    }
-  }, minutes * 60000);
+  if(Number.isFinite(minutes) && minutes > 0){
+    miderAutoRefreshTimer = setInterval(function(){
+      if(!isDashboardLoading){
+        loadDashboardData({forceRefresh:true, useCache:false, showLoading:false});
+      }
+    }, minutes * 60000);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', setupManualRefreshButton);
 document.addEventListener('DOMContentLoaded', setupMatrixTableWheelFix);
-
-setupMiderRealtimeTriggers();
-loadDashboardData();
+loadDashboardData({forceRefresh:true, useCache:false});
 
 
 
