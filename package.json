@@ -1,0 +1,15 @@
+{
+  "name": "dashboard-dkp3",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "mkdir -p dist && cp index.html style.css app.js map.js data.json logo.png cirebon_kecamatan.geojson cirebon_kelurahan.geojson dist/",
+    "lint": "node -c server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

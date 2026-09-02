@@ -1184,7 +1184,7 @@ function applyMiderThemeFromSpreadsheet(rows){
 
   const activeTheme =
     document.documentElement.getAttribute('data-theme') ||
-    normalizeThemeName((window.CONFIG || {}).default_theme || 'light');
+    normalizeThemeName((window.CONFIG || {}).default_theme || 'dark');
 
   document.documentElement.setAttribute('data-theme', activeTheme);
 
@@ -1275,36 +1275,14 @@ function refreshMiderVisualThemeAfterSpreadsheet(){
 }
 
 function initMiderTheme(config = {}){
-  const btn = document.getElementById('themeToggle');
-  // Hapus kunci tema lama agar tidak bentrok dengan sistem MIDER 2.0.
+  // Konsep 2: High-Tech GIS Command Center — Tema permanen tunggal
   localStorage.removeItem('miderTheme');
+  localStorage.setItem('mider-theme', 'dark');
+  document.documentElement.setAttribute('data-theme', 'dark');
 
-  const saved = localStorage.getItem('mider-theme');
-  const defaultTheme = normalizeThemeName(config.default_theme || 'dark');
-  const active = normalizeThemeName(saved || defaultTheme);
-
-  document.documentElement.setAttribute('data-theme', active);
-
+  const btn = document.getElementById('themeToggle');
   if(btn){
-    btn.textContent = active === 'dark' ? '☀️' : '🌙';
-    btn.title = active === 'dark' ? 'Ganti ke tema terang' : 'Ganti ke tema gelap';
-
-    if(btn.dataset.miderThemeBound !== '1'){
-      btn.addEventListener('click', function(){
-        const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-        const next = current === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('mider-theme', next);
-
-        applyMiderThemeFromApi(window.MIDER_RAW_DATA || {});
-        refreshMiderVisualThemeAfterSpreadsheet();
-        btn.textContent = next === 'dark' ? '☀️' : '🌙';
-        btn.title = next === 'dark' ? 'Ganti ke tema terang' : 'Ganti ke tema gelap';
-
-        if(typeof renderDynamicMapLegend === 'function') renderDynamicMapLegend();
-      });
-      btn.dataset.miderThemeBound = '1';
-    }
+    btn.style.display = 'none';
   }
 }
 
@@ -1706,8 +1684,9 @@ function populateSidebarMenu(mode = 'dashboard'){
       .sort()
       .map(u => `
         <button class="${activeUrusan === u ? 'active-filter' : ''}"
+          title="${u.replace(/"/g, '&quot;')}"
           onclick="pilihUrusanSidebar('${u.replace(/'/g,"\\'")}', '${mode}')">
-          ${u}
+          <span class="urusan-text">${u}</span>
         </button>
       `)
       .join('');
@@ -1717,23 +1696,33 @@ function populateSidebarMenu(mode = 'dashboard'){
 
   kategoriBox.innerHTML = [...new Set(kategoriRows.map(d => d.kategori).filter(Boolean))]
     .sort()
-    .map(k => `
-      <button class="${activeKategori === k ? 'active-filter' : ''}"
-        onclick="pilihKategoriSidebar('${k.replace(/'/g,"\\'")}', '${mode}')">
-        ${k}
-      </button>
-    `)
+    .map(k => {
+      const len = k.length;
+      const sizeClass = len > 24 ? 'kategori-mini' : (len > 16 ? 'kategori-compact' : '');
+      return `
+        <button class="${activeKategori === k ? 'active-filter' : ''} ${sizeClass}"
+          title="${k.replace(/"/g, '&quot;')}"
+          onclick="pilihKategoriSidebar('${k.replace(/'/g,"\\'")}', '${mode}')">
+          <span class="kategori-text">${k}</span>
+        </button>
+      `;
+    })
     .join('') || '<small>Tidak ada kategori sesuai filter.</small>';
 
   indikatorBox.innerHTML = [...new Set(indikatorRows.map(d => d.indikator).filter(Boolean))]
     .sort()
     .slice(0,40)
-    .map(i => `
-      <button class="${activeIndikator === i ? 'active-filter' : ''}"
-        onclick="pilihIndikatorSidebar('${i.replace(/'/g,"\\'")}', '${mode}')">
-        ${i}
-      </button>
-    `)
+    .map(i => {
+      const len = i.length;
+      const sizeClass = len > 32 ? 'indikator-mini' : (len > 22 ? 'indikator-compact' : '');
+      return `
+        <button class="${activeIndikator === i ? 'active-filter' : ''} ${sizeClass}"
+          title="${i.replace(/"/g, '&quot;')}"
+          onclick="pilihIndikatorSidebar('${i.replace(/'/g,"\\'")}', '${mode}')">
+          <span class="indikator-text">${i}</span>
+        </button>
+      `;
+    })
     .join('') || '<small>Tidak ada indikator sesuai filter.</small>';
 }
 

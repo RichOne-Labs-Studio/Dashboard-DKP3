@@ -1,0 +1,6 @@
+{
+  "name": "MIDER - Dashboard DKP3 Kota Cirebon",
+  "description": "Monitoring Interaktif Data dan Evaluasi Sektor Pangan, Pertanian dan Perikanan Kota Cirebon",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
