@@ -1222,6 +1222,50 @@ button.green:hover {
   color: #ffffff !important;
 }
 
+.leaflet-control-layers {
+  background: rgba(8, 15, 34, 0.94) !important;
+  color: #f1f5f9 !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7), 0 0 12px rgba(56, 189, 248, 0.15) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  font-size: 12px !important;
+  padding: 8px 12px !important;
+}
+
+.leaflet-control-layers-toggle {
+  background-color: rgba(8, 15, 34, 0.9) !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+.leaflet-control-layers label {
+  color: #cbd5e1 !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  cursor: pointer;
+  margin-bottom: 5px;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  text-transform: none !important;
+}
+
+.leaflet-control-layers label:hover {
+  color: #38bdf8 !important;
+}
+
+.leaflet-control-layers input[type="radio"],
+.leaflet-control-layers input[type="checkbox"] {
+  accent-color: #0284c7;
+  cursor: pointer;
+  width: 14px !important;
+  height: 14px !important;
+  margin: 0 !important;
+}
+
 .mider-map-legend,
 .leaflet-control .mider-map-legend-box,
 .mider-map-legend-box {

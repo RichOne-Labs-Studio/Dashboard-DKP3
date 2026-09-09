@@ -8,7 +8,8 @@
     "theme_name": "Modern Mider",
     "auto_refresh_minutes": 5,
     "map_default_zoom": 12,
-    "map_default_layer": "kelurahan"
+    "map_default_layer": "kelurahan",
+    "carto_api_key": ""
   },
   "legenda": [
     {

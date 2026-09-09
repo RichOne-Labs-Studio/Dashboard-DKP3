@@ -42,13 +42,68 @@ function initMiderMap(){
   // sebagai HTMLDivElement. Itu BUKAN objek Leaflet Map. Jika tidak dicek, muncul error:
   // window.map.invalidateSize is not a function / t.addLayer is not a function.
   if(!isValidLeafletMap(window.map)){
-    window.map = L.map(el).setView([-6.7320, 108.5523], 12);
+    window.map = L.map(el, {
+      zoomControl: true,
+      maxZoom: 19
+    }).setView([-6.7320, 108.5523], 12);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // 1. Esri World Dark Gray Canvas (Resmi, Cepat, Bebas Watermark, Tanpa Perlu API Key)
+    const esriDarkBase = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      maxNativeZoom: 16,
       maxZoom: 19,
-      subdomains: 'abcd',
-      attribution: '&copy; OpenStreetMap &copy; CARTO'
-    }).addTo(getMiderMap());
+      attribution: '&copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+    });
+
+    const esriDarkRef = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+      maxNativeZoom: 16,
+      maxZoom: 19,
+      attribution: ''
+    });
+
+    const esriDarkGroup = L.layerGroup([esriDarkBase, esriDarkRef]);
+
+    // 2. Citra Satelit Resolusi Tinggi (Esri World Imagery)
+    const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      attribution: '&copy; Esri, Earthstar Geographics'
+    });
+
+    // 3. OpenStreetMap Standar
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    });
+
+    // 4. CARTO Dark Matter (jika pengguna mengonfigurasi carto_api_key)
+    const cartoKey = (window.CONFIG && window.CONFIG.carto_api_key) || '';
+    let cartoDark = null;
+    if(cartoKey){
+      cartoDark = L.tileLayer(`https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(cartoKey)}`, {
+        maxZoom: 19,
+        subdomains: 'abcd',
+        attribution: '&copy; OpenStreetMap &copy; CARTO'
+      });
+    }
+
+    // Default layer aktif
+    if(cartoDark){
+      cartoDark.addTo(getMiderMap());
+    } else {
+      esriDarkGroup.addTo(getMiderMap());
+    }
+
+    // Kontrol pemilih basemap interaktif
+    const baseMaps = {
+      "🌙 Peta Gelap (Esri Dark)": esriDarkGroup,
+      "🛰️ Satelit (Citra Udara)": esriSatellite,
+      "🗺️ OpenStreetMap": osmLayer
+    };
+
+    if(cartoDark){
+      baseMaps["⚡ CARTO Dark (API Key Aktif)"] = cartoDark;
+    }
+
+    L.control.layers(baseMaps, null, { position: 'topright', collapsed: true }).addTo(getMiderMap());
   }
 
   return true;
