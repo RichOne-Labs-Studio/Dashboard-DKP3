@@ -612,7 +612,7 @@ function resetFilters(){
   render();
 }
 function downloadPDF(){window.print();}
-const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/library/d/14RehjvrY99vkDJ1GpDIF72k1DLYuEuXV_Gzcd0e5iFnDrKEfxhUUeRG4/27';
+const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbw-g0VpS35FrnUwtFaOnSpqUguWgTvmuotBOTKNcp1VPlleDXWevMOSkt1p9JM7tWuK/exec';
 
 const DASHBOARD_CACHE_KEY = 'miderDashboardCacheV1';
 let isDashboardLoading = false;
