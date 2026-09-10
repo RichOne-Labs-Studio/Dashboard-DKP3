@@ -9,9 +9,10 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 
-// Determine static root directory (prefer dist if exists and has index.html, else root)
+// Determine static root directory (prefer dist in production if it exists, else root)
 const distDir = path.join(__dirname, 'dist');
-const staticDir = fs.existsSync(path.join(distDir, 'index.html')) ? distDir : __dirname;
+const isProd = process.env.NODE_ENV === 'production';
+const staticDir = isProd && fs.existsSync(path.join(distDir, 'index.html')) ? distDir : __dirname;
 
 app.use(express.static(staticDir));
 
